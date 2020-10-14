@@ -107,10 +107,6 @@ input_accel_discover (GUdevDevice *device)
 	if (strstr (path, "/event") == NULL)
 		return FALSE;
 
-	parent = g_udev_device_get_parent (device);
-	if (parent && is_part_of_joypad (parent))
-		return FALSE;
-
 	g_debug ("Found input accel at %s", g_udev_device_get_sysfs_path (device));
 	return TRUE;
 }
