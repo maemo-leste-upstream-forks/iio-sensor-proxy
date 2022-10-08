@@ -950,16 +950,21 @@ sensor_changes (GUdevClient *client,
 			SensorDriver *driver = (SensorDriver *) drivers[i];
 			if (!driver_type_exists (data, driver->type) &&
 			    driver_discover (driver, device)) {
+				SensorDevice *sensor_device = NULL;
+
 				g_debug ("Found hotplugged device %s of type %s at %s",
 					 g_udev_device_get_sysfs_path (device),
 					 driver_type_to_str (driver->type),
 					 driver->driver_name);
 
-				if (driver_open (driver, device,
-						 driver_type_to_callback_func (driver->type), data)) {
+				sensor_device = driver_open (driver, device,
+					driver_type_to_callback_func (driver->type), data);
+
+				if (sensor_device) {
 					GHashTable *ht;
 
 					UDEV_DEVICE_FOR_TYPE(driver->type) = g_object_ref (device);
+					DEVICE_FOR_TYPE(driver->type) = sensor_device;
 					DRIVER_FOR_TYPE(driver->type) = (SensorDriver *) driver;
 					send_driver_changed_dbus_event (data, driver->type);
 
