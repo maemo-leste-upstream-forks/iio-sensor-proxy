@@ -18,6 +18,11 @@ variables:
                 python3-psutil
                 umockdev
 
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_PIPELINE_SOURCE == 'push'
+
 build_stable:
   before_script:
     # Undo delangification present in the Fedora Docker images
