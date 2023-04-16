@@ -13,7 +13,10 @@
 #include "iio-buffer-utils.h"
 #include "utils.h"
 
+#include <ctype.h>
 #include <fcntl.h>
+#include <float.h>
+#include <math.h>
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
@@ -548,6 +551,61 @@ process_scan_1 (char              *data,
 }
 
 /**
+ * iio_round_sampling_frequency: Round sampling_frequency to a supported value
+ * @dev: the IIO device to round the sampling frequency for
+ * @name: name of the *sampling_frequency attribute for which to round value
+ * @desired: desired value
+ *
+ * Check "<name>_available" and if that attribute exists round the desired
+ * value to a supported value, rounding up where possible.
+ */
+static double
+iio_round_sampling_frequency (GUdevDevice *dev, const char *name, double desired)
+{
+	g_autofree char *available_attr = NULL;
+	const char *available_str;
+	char *endptr;
+	double closest_higher = DBL_MAX;
+	double closest_lower = 0.0;
+	double available;
+
+	available_attr = g_strconcat (name, "_available", NULL);
+	available_str = g_udev_device_get_sysfs_attr (dev, available_attr);
+
+	if (!available_str)
+		return desired;
+
+	while (*available_str) {
+		available = g_ascii_strtod (available_str, &endptr);
+		if (available_str == endptr || (*endptr && !isspace (*endptr)))
+			break;
+
+		available_str = endptr;
+
+		/* 0 disables sampling, skip */
+		if (available == 0.0)
+			continue;
+
+		if (available >= desired) {
+			if (available < closest_higher)
+				closest_higher = available;
+		} else {
+			if (available > closest_lower)
+				closest_lower = available;
+		}
+	}
+
+	/* Prefer higher values */
+	if (closest_higher != DBL_MAX)
+		return closest_higher;
+
+	if (closest_lower != 0.0)
+		return closest_lower;
+
+	return desired;
+}
+
+/**
  * iio_fixup_sampling_frequency: Fixup devices *sampling_frequency attributes
  * @dev: the IIO device to fix the sampling frequencies for
  *
@@ -566,6 +624,7 @@ iio_fixup_sampling_frequency (GUdevDevice *dev)
 	const char *device_dir;
 	const char *name;
 	g_autoptr(GError) error = NULL;
+	char sample_freq_str[G_ASCII_DTOSTR_BUF_SIZE];
 	double sample_freq;
 
 	device_dir = g_udev_device_get_sysfs_path (dev);
@@ -583,8 +642,16 @@ iio_fixup_sampling_frequency (GUdevDevice *dev)
 		if (sample_freq >= IIO_MIN_SAMPLING_FREQUENCY)
 			continue; /* Continue with pre-set sample freq. */
 
-		/* Sample freq too low, set it to 10Hz */
-		if (write_sysfs_int (name, device_dir, IIO_MIN_SAMPLING_FREQUENCY) < 0)
+		/* Sample freq too low, set it to a supported freq close to 10Hz */
+		sample_freq = iio_round_sampling_frequency (dev, name, IIO_MIN_SAMPLING_FREQUENCY);
+
+		/*
+		 * Some sample_freq IIO sysfs attr only accept integers, most will
+		 * accept floats but not all. g_ascii_dtostr() uses the shortest
+		 * possible representation, omitting the "." for whole numbers.
+		 */
+		g_ascii_dtostr (sample_freq_str, G_ASCII_DTOSTR_BUF_SIZE, sample_freq);
+		if (write_sysfs_string (name, device_dir, sample_freq_str) < 0)
 			g_warning ("Could not fix sample-freq for %s/%s", device_dir, name);
 	}
 	g_dir_close (dir);
