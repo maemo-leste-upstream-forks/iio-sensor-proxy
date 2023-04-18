@@ -643,6 +643,46 @@ class Tests(dbusmock.DBusTestCase):
 
         self.stop_daemon()
 
+    def test_sampling_freq_available_integer(self):
+        'Check whether the sampling frequency gets corrected to >= 10Hz, integer numbers sorted low to high'
+
+        accel = self.testbed.add_device('iio', 'iio-accel', None,
+            ['in_accel_x_raw', '0',
+             'in_accel_y_raw', '-256000000',
+             'in_accel_z_raw', '0',
+             'in_accel_scale', '0.000001',
+             'sampling_frequency', '5.2',
+             # Real world example taken from LSM303DA accelerometer
+             'sampling_frequency_available', '3 6 12 25 50 100 200 400 800 1600',
+             'name', 'IIO Test Accelerometer'],
+            ['NAME', '"IIO Accelerometer"',
+             'IIO_SENSOR_PROXY_TYPE', 'iio-poll-accel']
+        )
+        self.start_daemon()
+        self.assertEqual(self.get_dbus_property('HasAccelerometer'), True)
+        self.assertEqual(self.read_sysfs_attr(accel, 'sampling_frequency'), b'12')
+        self.stop_daemon()
+
+    def test_sampling_freq_available_double(self):
+        'Check whether the sampling frequency gets corrected to >= 10Hz, double numbers sorted high to low'
+
+        accel = self.testbed.add_device('iio', 'iio-accel', None,
+            ['in_accel_x_raw', '0',
+             'in_accel_y_raw', '-256000000',
+             'in_accel_z_raw', '0',
+             'in_accel_scale', '0.000001',
+             'sampling_frequency', '5.2',
+             # Real world example taken from drivers/iio/accel/mma8452.c
+             'sampling_frequency_available', '800.000000 400.000000 200.000000 100.000000 50.000000 12.500000 6.250000 1.560000',
+             'name', 'IIO Test Accelerometer'],
+            ['NAME', '"IIO Accelerometer"',
+             'IIO_SENSOR_PROXY_TYPE', 'iio-poll-accel']
+        )
+        self.start_daemon()
+        self.assertEqual(self.get_dbus_property('HasAccelerometer'), True)
+        self.assertEqual(self.read_sysfs_attr(accel, 'sampling_frequency'), b'12.5')
+        self.stop_daemon()
+
     def test_iio_scale_decimal_separator2(self):
         '''scale decimal separator polling'''
         accel = self.testbed.add_device('iio', 'iio-accel', None,
