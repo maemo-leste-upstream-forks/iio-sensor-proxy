@@ -50,17 +50,21 @@ executable('fake-input-accelerometer',
   install: false
 )
 
-executable('test-mount-matrix',
+test_mount_matrix = executable('test-mount-matrix',
   [ 'test-mount-matrix.c', 'accel-mount-matrix.c' ],
   dependencies: deps,
   install: false
 )
 
-executable('test-orientation',
+test('test-mount-matrix', test_mount_matrix)
+
+test_orientation = executable('test-orientation',
   [ 'test-orientation.c', 'orientation.c', 'accel-mount-matrix.c', 'accel-scale.c' ],
   dependencies: deps,
   install: false
 )
+
+test('test-orientation', test_orientation)
 
 if get_option('gtk-tests')
   executable('test-orientation-gtk',
