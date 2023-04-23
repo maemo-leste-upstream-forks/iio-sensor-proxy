@@ -161,4 +161,8 @@ extern SensorDriver iio_buffer_compass;
 extern SensorDriver iio_poll_proximity;
 extern SensorDriver input_proximity;
 
+#ifdef HAS_LIBSSC
+extern SensorDriver ssc_proximity;
+#endif
+
 gboolean drv_check_udev_sensor_type (GUdevDevice *device, const gchar *match, const char *name);

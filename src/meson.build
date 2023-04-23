@@ -45,6 +45,12 @@ sources = [
   config_h_files,
 ]
 
+if get_option('ssc-support').enabled()
+  sources = sources + [
+    'drv-ssc-proximity.c',
+  ]
+endif
+
 executable('iio-sensor-proxy',
   sources,
   dependencies: deps,

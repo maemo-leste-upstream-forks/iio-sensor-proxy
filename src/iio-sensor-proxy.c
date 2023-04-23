@@ -79,6 +79,9 @@ static const SensorDriver * const drivers[] = {
 	&iio_buffer_compass,
 	&iio_poll_proximity,
 	&input_proximity,
+#ifdef HAS_LIBSSC
+	&ssc_proximity,
+#endif
 };
 
 static ReadingsUpdateFunc driver_type_to_callback_func (DriverType type);
