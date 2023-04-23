@@ -128,6 +128,11 @@ find_sensors (GUdevClient *client,
 	platform = g_udev_client_query_by_subsystem (client, "platform");
 	devices = g_list_concat (devices, input);
 	devices = g_list_concat (devices, platform);
+#ifdef HAS_LIBSSC
+	GList *fastrpc;
+	fastrpc = g_udev_client_query_by_subsystem (client, "misc");
+	devices = g_list_concat (devices, fastrpc);
+#endif
 
 	/* Find the devices */
 	for (l = devices; l != NULL; l = l->next) {
@@ -727,7 +732,15 @@ name_acquired_handler (GDBusConnection *connection,
 		       gpointer         user_data)
 {
 	SensorData *data = user_data;
-	const gchar * const subsystems[] = { "iio", "input", "platform", NULL };
+	const gchar * const subsystems[] = {
+		"iio",
+		"input",
+		"platform",
+#ifdef HAS_LIBSSC
+		"misc",
+#endif
+		NULL
+    };
 	guint i;
 
 	data->client = g_udev_client_new (subsystems);

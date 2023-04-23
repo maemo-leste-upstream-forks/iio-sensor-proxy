@@ -46,6 +46,7 @@ gio_dep = dependency('gio-2.0', version: '>= 2.76')
 gudev_dep = dependency('gudev-1.0', version: '>= 237')
 polkit_gobject_dep = dependency('polkit-gobject-1', version: '>= 0.91')
 polkit_policy_directory = polkit_gobject_dep.get_pkgconfig_variable('policydir')
+libssc_dep = dependency('libssc', version: '>=0.2.1', required: get_option('ssc-support'))
 
 xmllint = find_program('xmllint', required: false)
 

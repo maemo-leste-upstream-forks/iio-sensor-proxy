@@ -1,3 +1,7 @@
+rules = files(
+  '80-iio-sensor-proxy.rules'
+)
+
 install_data(
   '80-iio-sensor-proxy.rules',
   install_dir: udev_rules_dir

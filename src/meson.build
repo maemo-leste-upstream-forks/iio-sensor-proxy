@@ -1,11 +1,18 @@
 config_h = configuration_data()
 config_h.set_quoted('VERSION', meson.project_version())
+if get_option('ssc-support').enabled()
+  config_h.set_quoted('HAS_LIBSSC', '1')
+endif
 config_h_files = configure_file(
   output: 'config.h',
   configuration: config_h
 )
 
 deps = [ gio_dep, gudev_dep, mathlib_dep, polkit_gobject_dep ]
+
+if get_option('ssc-support').enabled()
+  deps = deps + [ libssc_dep ]
+endif
 
 resources = gnome.compile_resources(
     'iio-sensor-proxy-resources', 'iio-sensor-proxy.gresource.xml',

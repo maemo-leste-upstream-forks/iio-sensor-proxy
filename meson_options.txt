@@ -18,6 +18,10 @@ option('geoclue-user',
        description: 'The USER (existing) as which geoclue service is running',
        type: 'string',
        value: 'geoclue')
+option('ssc-support',
+       description: 'Enable Qualcomm SSC support',
+       type: 'feature',
+       value: 'auto')
 option('gtk_doc',
        type: 'boolean',
        value: false,
