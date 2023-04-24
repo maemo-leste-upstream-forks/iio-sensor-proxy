@@ -82,6 +82,7 @@ static const SensorDriver * const drivers[] = {
 #ifdef HAS_LIBSSC
 	&ssc_proximity,
 	&ssc_light,
+	&ssc_accel,
 #endif
 };
 

@@ -164,6 +164,7 @@ extern SensorDriver input_proximity;
 #ifdef HAS_LIBSSC
 extern SensorDriver ssc_proximity;
 extern SensorDriver ssc_light;
+extern SensorDriver ssc_accel;
 #endif
 
 gboolean drv_check_udev_sensor_type (GUdevDevice *device, const gchar *match, const char *name);

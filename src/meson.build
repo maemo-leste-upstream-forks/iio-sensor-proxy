@@ -49,6 +49,7 @@ if get_option('ssc-support').enabled()
   sources = sources + [
     'drv-ssc-proximity.c',
     'drv-ssc-light.c',
+    'drv-ssc-accel.c',
   ]
 endif
 
