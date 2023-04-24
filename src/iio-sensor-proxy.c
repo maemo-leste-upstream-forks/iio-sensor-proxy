@@ -83,6 +83,7 @@ static const SensorDriver * const drivers[] = {
 	&ssc_proximity,
 	&ssc_light,
 	&ssc_accel,
+	&ssc_compass,
 #endif
 };
 
