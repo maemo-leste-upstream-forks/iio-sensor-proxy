@@ -26,7 +26,7 @@ common_cflags = cc.get_supported_arguments([
 prefix = get_option('prefix')
 libexecdir = prefix / get_option('libexecdir')
 bindir = get_option('bindir')
-dbusconfdir = get_option('sysconfdir') / 'dbus-1' / 'system.d'
+dbusconfdir = get_option('datadir') / 'dbus-1' / 'system.d'
 
 mathlib_dep = cc.find_library('m', required: false)
 udev_rules_dir = get_option('udevrulesdir')
