@@ -1,3 +1,10 @@
+3.5
+---
+
+This update fixes sensor hotplugging, and fixes some sensors not working when
+they were assigned a sampling frequency they did not support. This update also
+adds more tests, and corrects the location of the D-Bus policy file.
+
 3.4
 ---
 
