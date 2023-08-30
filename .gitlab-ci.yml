@@ -37,9 +37,21 @@ build_stable:
     - ninja -v -C _build uninstall
     - ninja -v -C _build dist
     - meson test -C _build
+    - ninja -C  _build/ iio-sensor-proxy-doc
   artifacts:
     when: always
-    name: "iio-sensor-proxy-${CI_COMMIT_REF_NAME}"
     paths:
       - "${CI_PROJECT_DIR}/_build/meson-logs"
       - "${CI_PROJECT_DIR}/_build/meson-dist"
+      - "${CI_PROJECT_DIR}/_build/docs/html/"
+
+pages:
+  needs:
+    - build_stable
+  script:
+    - mv _build/docs/html/* public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
