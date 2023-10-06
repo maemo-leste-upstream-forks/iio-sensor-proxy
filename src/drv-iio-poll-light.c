@@ -71,6 +71,7 @@ get_illuminance_channel_path (GUdevDevice *device,
 	const char *channels[] = {
 		"in_illuminance",
 		"in_illuminance0",
+		"in_illuminance_clear",
 		"in_intensity_clear"
 	};
 	char *path = NULL;
