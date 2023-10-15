@@ -22,6 +22,7 @@
 #define PROXIMITY_WATER_MARK_HIGH 1.1
 
 typedef struct DrvData {
+	char               *input_attr;
 	guint               timeout_id;
 	GUdevDevice        *dev;
 	gint                near_level;
@@ -38,7 +39,7 @@ poll_proximity (gpointer user_data)
 	gdouble near_level = drv_data->near_level;
 
 	/* g_udev_device_get_sysfs_attr_as_int does not update when there's no event */
-	prox = g_udev_device_get_sysfs_attr_as_int_uncached (drv_data->dev, "in_proximity_raw");
+	prox = g_udev_device_get_sysfs_attr_as_int_uncached (drv_data->dev, drv_data->input_attr);
 	/* Use a margin so we don't trigger too often */
 	near_level *=  (drv_data->last_level > near_level) ? PROXIMITY_WATER_MARK_LOW : PROXIMITY_WATER_MARK_HIGH;
 	readings.is_near = (prox > near_level) ? PROXIMITY_NEAR_TRUE : PROXIMITY_NEAR_FALSE;
@@ -74,6 +75,29 @@ iio_poll_proximity_set_polling (SensorDevice *sensor_device,
 
 		poll_proximity (sensor_device);
 	}
+}
+
+static char *
+get_proximity_channel_attr (GUdevDevice *device,
+			      const char *suffix)
+{
+	const char *channels[] = {
+		"in_proximity",
+		"in_proximity0"
+	};
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS (channels); i++) {
+		g_autofree char *path = NULL, *attr = NULL;
+		gboolean exists = FALSE;
+
+		attr = g_strdup_printf ("%s_%s", channels[i], suffix);
+		path = g_strdup_printf ("%s/%s", g_udev_device_get_sysfs_path (device), attr);
+		exists = g_file_test (path, G_FILE_TEST_EXISTS);
+		if (exists)
+			return g_steal_pointer (&attr);
+	}
+	return NULL;
 }
 
 static gint
@@ -116,6 +140,10 @@ iio_poll_proximity_open (GUdevDevice *device)
 	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->dev = g_object_ref (device);
 	drv_data->near_level = near_level;
+	drv_data->input_attr = get_proximity_channel_attr (device, "raw");
+
+	if(!drv_data->input_attr)
+		return NULL;
 
 	return sensor_device;
 }
@@ -125,6 +153,7 @@ iio_poll_proximity_close (SensorDevice *sensor_device)
 {
 	DrvData *drv_data = (DrvData *) sensor_device->priv;
 
+	g_clear_pointer (&drv_data->input_attr, g_free);
 	g_clear_object (&drv_data->dev);
 	g_clear_pointer (&sensor_device->priv, g_free);
 	g_free (sensor_device);
