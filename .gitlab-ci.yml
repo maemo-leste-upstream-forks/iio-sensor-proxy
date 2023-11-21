@@ -27,9 +27,9 @@ build_stable:
   before_script:
     # Undo delangification present in the Fedora Docker images
     - rm -f /etc/rpm/macros.image-language-conf
-    - dnf update -y
+    - if [ -x /bin/dnf ]; then dnf update -y; else dnf5 update -y; fi
     - if [ -x /bin/dnf ]; then dnf install -y $DEPENDENCIES; else dnf5 install -y $DEPENDENCIES; fi
-    - dnf reinstall -y glib2
+    - if [ -x /bin/dnf ]; then dnf reinstall -y glib2; else dnf5 reinstall -y glib2; fi
   script:
     - meson -Dtests=true -Dgtk_doc=true -Dgtk-tests=true _build
     - ninja -v -C _build
