@@ -457,6 +457,20 @@ class Tests(dbusmock.DBusTestCase):
 
         self.stop_daemon()
 
+    def test_input_proximity(self):
+        '''input proximity'''
+        top_srcdir = os.getenv('top_srcdir', '.')
+        script = ['umockdev-run', '-d', top_srcdir + '/tests/input-proximity-data/device',
+                  '-i', '/dev/input/event4=%s/tests/input-proximity-data/ioctl' % (top_srcdir),
+                  '--']
+
+        self.start_daemon(wrapper=script)
+
+        self.assertEqual(self.get_dbus_property('HasProximity'), True)
+        self.assertEqual(self.get_dbus_property('ProximityNear'), False)
+
+        self.stop_daemon()
+
     def test_iio_buffer_accel(self):
         '''iio buffer accel'''
         top_srcdir = os.getenv('top_srcdir', '.')

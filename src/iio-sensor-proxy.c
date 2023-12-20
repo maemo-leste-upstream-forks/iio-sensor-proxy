@@ -74,6 +74,7 @@ static const SensorDriver * const drivers[] = {
 	&fake_light,
 	&iio_buffer_compass,
 	&iio_poll_proximity,
+	&input_proximity,
 };
 
 static ReadingsUpdateFunc driver_type_to_callback_func (DriverType type);
