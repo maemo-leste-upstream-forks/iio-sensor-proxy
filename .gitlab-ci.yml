@@ -49,7 +49,8 @@ pages:
   needs:
     - build_stable
   script:
-    - mv _build/docs/html/* public/
+    - find _build/docs/html/
+    - mv _build/docs/html public
   artifacts:
     paths:
       - public
