@@ -356,27 +356,38 @@ _write_sysfs_int (const char *filename,
 	int ret = 0;
 	g_autoptr(FILE) sysfsfp = NULL;
 	int test;
-	char *temp;
+	g_autofree char *temp = NULL;
+
 	temp = g_build_filename (basedir, filename, NULL);
 	sysfsfp = fopen(temp, "w");
 	if (sysfsfp == NULL) {
 		g_warning ("Could not open for write '%s'", temp);
-		ret = -errno;
-		goto error_free;
+		return -errno;
 	}
+
+	setvbuf(sysfsfp, NULL, _IONBF, 0);
+
 	if (type)
-		fprintf(sysfsfp, "%d %d", val, val2);
+		ret = fprintf(sysfsfp, "%d %d", val, val2);
 	else
-		fprintf(sysfsfp, "%d", val);
+		ret = fprintf(sysfsfp, "%d", val);
+
 	g_clear_pointer (&sysfsfp, fclose);
+
+	if (ret < 0) {
+		g_warning ("Could not write to '%s': %s", temp, g_strerror(-ret));
+		return ret;
+	}
+
+	ret = 0;
 
 	if (verify) {
 		sysfsfp = fopen(temp, "r");
 		if (sysfsfp == NULL) {
 			g_warning ("Could not open for read '%s'", temp);
-			ret = -errno;
-			goto error_free;
+			return -errno;
 		}
+
 		if (fscanf(sysfsfp, "%d", &test) != 1 ||
 		    test != val) {
 			g_warning ("Possible failure in int write %d to %s",
@@ -384,8 +395,7 @@ _write_sysfs_int (const char *filename,
 			ret = -1;
 		}
 	}
-error_free:
-	g_free (temp);
+
 	return ret;
 }
 
@@ -673,6 +683,9 @@ enable_sensors (GUdevDevice *dev,
 	gboolean ret = FALSE;
 	g_autoptr(GError) error = NULL;
 
+	g_debug ("%s sensors for device '%s'", enable ? "Enabling" : "Disabling",
+		 g_udev_device_get_sysfs_path (dev));
+
 	device_dir = g_build_filename (g_udev_device_get_sysfs_path (dev), "scan_elements", NULL);
 	dir = g_dir_open (device_dir, 0, &error);
 	if (!dir) {
@@ -689,7 +702,7 @@ enable_sensors (GUdevDevice *dev,
 
 		/* Already enabled? */
 		path = g_strdup_printf ("scan_elements/%s", name);
-		if (g_udev_device_get_sysfs_attr_as_boolean (dev, path)) {
+		if (enable && g_udev_device_get_sysfs_attr_as_boolean (dev, path)) {
 			g_debug ("Already enabled sensor %s/%s", device_dir, name);
 			ret = TRUE;
 			g_free (path);
@@ -699,18 +712,21 @@ enable_sensors (GUdevDevice *dev,
 
 		/* Enable */
 		if (write_sysfs_int (name, device_dir, enable) < 0) {
-			g_warning ("Could not enable sensor %s/%s", device_dir, name);
+			g_warning ("Could not write %d to %s/%s",
+				   enable, device_dir, name);
 			continue;
 		}
 
 		ret = TRUE;
-		g_debug ("Enabled sensor %s/%s", device_dir, name);
+		g_debug ("%s sensor %s/%s", enable ? "Enabled" : "Disabled",
+			 device_dir, name);
 	}
 	g_dir_close (dir);
 	g_free (device_dir);
 
 	if (!ret) {
-		g_warning ("Failed to enable any sensors for device '%s'",
+		g_warning ("Failed to %s any sensors for device '%s'",
+			   enable ? "enable" : "disable",
 			   g_udev_device_get_sysfs_path (dev));
 	}
 
@@ -785,12 +801,13 @@ buffer_drv_data_free (BufferDrvData *buffer_data)
 	if (buffer_data == NULL)
 		return;
 
+	/* A buffer should be disabled before scan elements to avoid a
+	 * "Device or resource busy" error */
+	disable_ring_buffer (buffer_data);
+	g_free (buffer_data->trigger_name);
+
 	enable_sensors (buffer_data->device, 0);
 	g_clear_object (&buffer_data->device);
-
-	disable_ring_buffer (buffer_data);
-
-	g_free (buffer_data->trigger_name);
 
 	for (i = 0; i < buffer_data->channels_count; i++)
 		channel_info_free (buffer_data->channels[i]);
