@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <glib-unix.h>
 #include <gio/gio.h>
 #include <gudev/gudev.h>
 #include <polkit/polkit.h>
@@ -981,6 +982,17 @@ sensor_changes (GUdevClient *client,
 	}
 }
 
+gboolean
+termination_signal_handler (gpointer user_data)
+{
+	SensorData *data = user_data;
+
+	g_debug ("Shutting down");
+	g_main_loop_quit (data->loop);
+
+	return G_SOURCE_REMOVE;
+}
+
 int main (int argc, char **argv)
 {
 	SensorData *data;
@@ -1022,6 +1034,10 @@ int main (int argc, char **argv)
 
 	data->auth = polkit_authority_get_sync (NULL, NULL);
 	data->loop = g_main_loop_new (NULL, TRUE);
+
+	g_unix_signal_add (SIGINT, (GSourceFunc) termination_signal_handler, data);
+	g_unix_signal_add (SIGTERM, (GSourceFunc) termination_signal_handler, data);
+
 	g_main_loop_run (data->loop);
 	ret = data->ret;
 	free_sensor_data (data);
