@@ -27,6 +27,7 @@ import tempfile
 import psutil
 import subprocess
 import unittest
+import locale
 import time
 
 try:
@@ -50,6 +51,7 @@ SP_COMPASS = 'net.hadess.SensorProxy.Compass'
 SP_COMPASS_PATH = '/net/hadess/SensorProxy/Compass'
 
 class Tests(dbusmock.DBusTestCase):
+
     @classmethod
     def setUpClass(cls):
         # run from local build tree if we are in one, otherwise use system instance
@@ -91,6 +93,15 @@ class Tests(dbusmock.DBusTestCase):
 
         cls.dbus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
         cls.dbus_con = cls.get_dbus(True)
+
+        # Some test outputs require the daemon to run under the fr locale:
+        # so check if that's available
+        try:
+            old_loc = locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
+            cls.has_fr = True
+            locale.setlocale(locale.LC_ALL, old_loc)
+        except:
+            cls.has_fr = False
 
     @classmethod
     def tearDownClass(cls):
@@ -612,10 +623,9 @@ class Tests(dbusmock.DBusTestCase):
             mock_file.write(data)
         self.proxy.ClaimAccelerometer()
         self.assertEventually(lambda: self.have_text_in_log('Accel sent by driver'))
-        # If the 2nd test fails, it's likely that fr_FR.UTF-8 locale isn't supported
         self.assertEqual(self.have_text_in_log('scale: 0,000000,0,000000,0,000000'), False)
-        self.assertEqual(self.have_text_in_log('scale: 0,000010,0,000010,0,000010'), True)
-
+        if self.has_fr:
+            self.assertEqual(self.have_text_in_log('scale: 0,000010,0,000010,0,000010'), True)
         self.stop_daemon()
 
     def test_iio_scale_decimal_separator_offset(self):
@@ -715,9 +725,9 @@ class Tests(dbusmock.DBusTestCase):
 
         self.proxy.ClaimAccelerometer()
         self.assertEventually(lambda: self.have_text_in_log('Accel read from IIO on'))
-        # If the 2nd test fails, it's likely that fr_FR.UTF-8 locale isn't supported
         self.assertEqual(self.have_text_in_log('scale 1,000000,1,000000,1,000000'), False)
-        self.assertEqual(self.have_text_in_log('scale 0,000001,0,000001,0,000001'), True)
+        if self.has_fr:
+            self.assertEqual(self.have_text_in_log('scale 0,000001,0,000001,0,000001'), True)
 
         self.assertEventually(lambda: self.get_dbus_property('AccelerometerOrientation') == 'normal')
 

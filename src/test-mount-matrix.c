@@ -66,12 +66,16 @@ test_mount_matrix (void)
 static void
 test_comma_decimal_separator (void)
 {
+	const char *fr_locale = "fr_FR.UTF-8";
 	char *old_locale;
 	AccelVec3 *vecs;
 
-	old_locale = setlocale (LC_ALL, "fr_FR.UTF-8");
+	old_locale = setlocale (LC_ALL, fr_locale);
 	/* French locale not available? */
-	g_assert_nonnull (old_locale);
+	if (!old_locale) {
+		g_test_skip_printf ("Local %s not available", fr_locale);
+		return;
+	}
 
 	/* Default matrix */
 	g_assert_true (parse_mount_matrix (DEFAULT_MATRIX, &vecs));
