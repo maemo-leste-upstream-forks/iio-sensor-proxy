@@ -3,7 +3,7 @@ iio-sensor-proxy
 
 IIO sensors to D-Bus proxy
 
-See https://developer.gnome.org/iio-sensor-proxy/1.0/ for
+See https://hadess.pages.freedesktop.org/iio-sensor-proxy/ for
 developer information.
 
 Installation
