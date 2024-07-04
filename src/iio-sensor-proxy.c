@@ -49,6 +49,9 @@ typedef struct {
 	GUdevDevice       *udev_devices[NUM_SENSOR_TYPES];
 	GHashTable        *clients[NUM_SENSOR_TYPES]; /* key = D-Bus name, value = watch ID */
 
+	GPtrArray         *sensor_startup_dbus_invocations_delayed[NUM_SENSOR_TYPES];
+	gboolean           sensor_startup_dbus_event_delayed[NUM_SENSOR_TYPES];
+
 	/* Accelerometer */
 	OrientationUp previous_orientation;
 
@@ -487,13 +490,6 @@ handle_generic_method_call (SensorData            *data,
 			return;
 		}
 
-		/* No other clients for this sensor? Start it */
-		if (driver_type_exists (data, driver_type) &&
-		    g_hash_table_size (ht) == 0) {
-			SensorDevice *sensor_device = DEVICE_FOR_TYPE(driver_type);
-			driver_set_polling (sensor_device, TRUE);
-		}
-
 		watch_id = g_bus_watch_name_on_connection (data->connection,
 							   sender,
 							   G_BUS_NAME_WATCHER_FLAGS_NONE,
@@ -503,7 +499,32 @@ handle_generic_method_call (SensorData            *data,
 							   NULL);
 		g_hash_table_insert (ht, g_strdup (sender), GUINT_TO_POINTER (watch_id));
 
-		g_dbus_method_invocation_return_value (invocation, NULL);
+		if (driver_type_exists (data, driver_type)) {
+			SensorDevice *sensor_device = DEVICE_FOR_TYPE(driver_type);
+
+			/* No other clients for this sensor? Start it */
+			if (g_hash_table_size (ht) == 1) {
+				/* Return the dbus invocation only after we receive the first
+				 * reading from the sensor, so that the client has a valid
+				 * measurement to work with right after calling Claim(). */
+				g_ptr_array_add (data->sensor_startup_dbus_invocations_delayed[driver_type],
+						 invocation);
+
+				driver_set_polling (sensor_device, TRUE);
+			} else if (data->sensor_startup_dbus_invocations_delayed[driver_type]->len > 0 ||
+				   data->sensor_startup_dbus_event_delayed[driver_type]) {
+				/* Client added while the sensor is still starting up, add it to
+				 * the delayed invocation list. */
+				g_ptr_array_add (data->sensor_startup_dbus_invocations_delayed[driver_type],
+						 invocation);
+			} else {
+				/* Client added while sensor is active already, can return the
+				 * invocation immediately. */
+				g_dbus_method_invocation_return_value (invocation, NULL);
+			}
+		} else {
+			g_dbus_method_invocation_return_value (invocation, NULL);
+		}
 	} else if (g_str_has_prefix (method_name, "Release")) {
 		client_release (data, sender, driver_type);
 		g_dbus_method_invocation_return_value (invocation, NULL);
@@ -700,6 +721,7 @@ name_acquired_handler (GDBusConnection *connection,
 		SensorDevice *sensor_device;
 
 		data->clients[i] = create_clients_hash_table ();
+		data->sensor_startup_dbus_invocations_delayed[i] = g_ptr_array_new ();
 
 		if (!driver_type_exists (data, i))
 			continue;
@@ -759,6 +781,26 @@ setup_dbus (SensorData *data,
 }
 
 static void
+maybe_notify_sensor_startup_finished (SensorData *data,
+				      DriverType  type)
+{
+	if (data->sensor_startup_dbus_invocations_delayed[type]->len > 0) {
+		g_autofree GDBusMethodInvocation **invocations = NULL;
+		size_t n_invocations, i;
+
+		invocations = (GDBusMethodInvocation**) g_ptr_array_steal (data->sensor_startup_dbus_invocations_delayed[type],
+									   &n_invocations);
+		for (i = 0; i < n_invocations; i++)
+			g_dbus_method_invocation_return_value (invocations[i], NULL);
+	}
+
+	if (data->sensor_startup_dbus_event_delayed[type]) {
+		send_driver_changed_dbus_event (data, type);
+		data->sensor_startup_dbus_event_delayed[type] = FALSE;
+	}
+}
+
+static void
 accel_changed_func (SensorDevice *sensor_device,
 		    gpointer      readings_data,
 		    gpointer      user_data)
@@ -786,6 +828,8 @@ accel_changed_func (SensorDevice *sensor_device,
 			 orientation_to_string (tmp),
 			 orientation_to_string (data->previous_orientation));
 	}
+
+	maybe_notify_sensor_startup_finished (data, DRIVER_TYPE_ACCEL);
 }
 
 static void
@@ -813,6 +857,8 @@ light_changed_func (SensorDevice *sensor_device,
 		g_debug ("Emitted light changed: from %lf to %lf",
 			 tmp, data->previous_level);
 	}
+
+	maybe_notify_sensor_startup_finished (data, DRIVER_TYPE_LIGHT);
 }
 
 static void
@@ -837,6 +883,8 @@ compass_changed_func (SensorDevice *sensor_device,
 		g_debug ("Emitted heading changed: from %lf to %lf",
 			 tmp, data->previous_heading);
 	}
+
+	maybe_notify_sensor_startup_finished (data, DRIVER_TYPE_COMPASS);
 }
 
 static void
@@ -863,6 +911,8 @@ proximity_changed_func (SensorDevice *sensor_device,
 		g_debug ("Emitted proximity changed: from %d to %d",
 			 tmp, near);
 	}
+
+	maybe_notify_sensor_startup_finished (data, DRIVER_TYPE_PROXIMITY);
 }
 
 static ReadingsUpdateFunc
@@ -900,6 +950,7 @@ free_sensor_data (SensorData *data)
 			driver_close (DEVICE_FOR_TYPE(i));
 		g_clear_object (&UDEV_DEVICE_FOR_TYPE(i));
 		g_clear_pointer (&data->clients[i], g_hash_table_unref);
+		g_clear_pointer (&data->sensor_startup_dbus_invocations_delayed[i], g_ptr_array_unref);
 	}
 
 	g_clear_object (&data->auth);
@@ -941,6 +992,25 @@ sensor_changes (GUdevClient *client,
 				g_clear_pointer (&data->clients[i], g_hash_table_unref);
 				data->clients[i] = create_clients_hash_table ();
 
+				/* If the driver is still starting up and never sent us a
+				 * reading, we might still be waiting for that. */
+				if (data->sensor_startup_dbus_event_delayed[i])
+					data->sensor_startup_dbus_event_delayed[i] = FALSE;
+
+				if (data->sensor_startup_dbus_invocations_delayed[i]->len > 0) {
+					g_autofree GDBusMethodInvocation **invocations = NULL;
+					size_t n_invocations, j;
+
+					invocations = (GDBusMethodInvocation**) g_ptr_array_steal (data->sensor_startup_dbus_invocations_delayed[i],
+												   &n_invocations);
+					for (j = 0; j < n_invocations; j++) {
+						g_dbus_method_invocation_return_error (invocations[j],
+										       G_DBUS_ERROR,
+										       G_DBUS_ERROR_FAILED,
+										       "Sensor removed while waiting for it to start up");
+					}
+				}
+
 				send_driver_changed_dbus_event (data, i);
 			}
 		}
@@ -968,13 +1038,22 @@ sensor_changes (GUdevClient *client,
 					UDEV_DEVICE_FOR_TYPE(driver->type) = g_object_ref (device);
 					DEVICE_FOR_TYPE(driver->type) = sensor_device;
 					DRIVER_FOR_TYPE(driver->type) = (SensorDriver *) driver;
-					send_driver_changed_dbus_event (data, driver->type);
+
+					g_assert (data->sensor_startup_dbus_event_delayed[driver->type] == FALSE);
 
 					ht = data->clients[driver->type];
 
 					if (g_hash_table_size (ht) > 0) {
 						SensorDevice *sensor_device = DEVICE_FOR_TYPE(driver->type);
+
+						/* Sensor just appeared but it's already claimed by some clients. Wait
+						 * with calling send_driver_changed_dbus_event() until the first measurement
+						 * appears, so that the clients have a valid measurement to work with. */
+						data->sensor_startup_dbus_event_delayed[driver->type] = TRUE;
+
 						driver_set_polling (sensor_device, TRUE);
+					} else {
+						send_driver_changed_dbus_event (data, driver->type);
 					}
 				}
 				break;
