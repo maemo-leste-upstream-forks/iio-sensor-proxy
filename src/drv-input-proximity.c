@@ -154,6 +154,7 @@ watch_input_proximity (gpointer user_data)
 	g_autoptr(GError) error = NULL;
 	GIOStatus status;
 	glong bitmask[NBITS(SW_MAX)];
+	ProximityReadings readings;
 
 	device_file = g_udev_device_get_device_file (drv_data->dev);
 	if (device_file == NULL || device_file[0] == '\0') {
@@ -185,6 +186,11 @@ watch_input_proximity (gpointer user_data)
 
 	drv_data->watcher_id = g_io_add_watch (drv_data->channel, G_IO_IN, proximity_changed, sensor_device);
 	drv_data->last_switch_state = test_bit (SW_FRONT_PROXIMITY, bitmask);
+
+	/* Notify the initial reading to the manager */
+	readings.is_near = drv_data->last_switch_state ? PROXIMITY_NEAR_TRUE : PROXIMITY_NEAR_FALSE;
+	sensor_device->callback_func (sensor_device, (gpointer) &readings, sensor_device->user_data);
+
 	return TRUE;
 }
 

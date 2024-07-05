@@ -183,13 +183,6 @@ uevent_received (GUdevClient *client,
 	accelerometer_changed (sensor_device);
 }
 
-static gboolean
-first_values (gpointer user_data)
-{
-	accelerometer_changed (user_data);
-	return G_SOURCE_REMOVE;
-}
-
 static SensorDevice *
 input_accel_open (GUdevDevice *device)
 {
@@ -222,8 +215,6 @@ input_accel_open (GUdevDevice *device)
 	g_signal_connect (drv_data->client, "uevent",
 			  G_CALLBACK (uevent_received), sensor_device);
 
-	g_idle_add (first_values, sensor_device);
-
 	return sensor_device;
 }
 
@@ -253,6 +244,8 @@ input_accel_set_polling (SensorDevice *sensor_device,
 	if (state && !drv_data->sends_kevent) {
 		drv_data->timeout_id = g_timeout_add (700, read_accel_poll, sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[input_accel_set_polling] read_accel_poll");
+
+		read_accel_poll (sensor_device);
 	}
 }
 
