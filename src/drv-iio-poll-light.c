@@ -129,6 +129,8 @@ iio_poll_light_set_polling (SensorDevice *sensor_device,
 						      (GSourceFunc) light_changed,
 						      sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[iio_poll_light_set_polling] light_changed");
+
+		light_changed (sensor_device);
 	}
 }
 

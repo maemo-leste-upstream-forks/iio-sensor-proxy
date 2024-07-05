@@ -91,6 +91,8 @@ iio_poll_accel_set_polling (SensorDevice *sensor_device,
 	if (state) {
 		drv_data->timeout_id = g_timeout_add (700, poll_orientation, sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[iio_poll_accel_set_polling] poll_orientation");
+
+		poll_orientation (sensor_device);
 	}
 }
 

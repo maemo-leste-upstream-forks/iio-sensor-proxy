@@ -71,6 +71,8 @@ iio_poll_proximity_set_polling (SensorDevice *sensor_device,
 	if (state) {
 		drv_data->timeout_id = g_timeout_add (700, poll_proximity, sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[iio_poll_proximity_set_polling] poll_proximity");
+
+		poll_proximity (sensor_device);
 	}
 }
 
