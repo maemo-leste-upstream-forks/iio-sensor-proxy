@@ -55,18 +55,6 @@ light_changed (gpointer user_data)
 	return G_SOURCE_CONTINUE;
 }
 
-static gboolean
-first_values (gpointer user_data)
-{
-	SensorDevice *sensor_device = user_data;
-	DrvData *drv_data = (DrvData *) sensor_device->priv;
-
-	light_changed (sensor_device);
-	drv_data->timeout_id = g_timeout_add_seconds (1, (GSourceFunc) light_changed, sensor_device);
-	g_source_set_name_by_id (drv_data->timeout_id, "[fake_light_set_polling] light_changed");
-	return G_SOURCE_REMOVE;
-}
-
 static SensorDevice *
 fake_light_open (GUdevDevice *device)
 {
@@ -96,8 +84,10 @@ fake_light_set_polling (SensorDevice *sensor_device,
 	}
 
 	if (state) {
-		drv_data->timeout_id = g_idle_add (first_values, sensor_device);
-		g_source_set_name_by_id (drv_data->timeout_id, "[fake_light_set_polling] first_values");
+		drv_data->timeout_id = g_timeout_add_seconds (1, (GSourceFunc) light_changed, sensor_device);
+		g_source_set_name_by_id (drv_data->timeout_id, "[fake_light_set_polling] light_changed");
+
+		light_changed (sensor_device);
 	}
 }
 
