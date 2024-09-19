@@ -30,12 +30,10 @@ build-debian-trixie:
     - eatmydata apt-get -y install $DEPENDENCIES
   script:
     - meson -Dtests=true -Dgtk_doc=true -Dgtk-tests=true _build
-    - ninja -v -C _build
-    - ninja -v -C _build install
-    - ninja -v -C _build uninstall
-    - ninja -v -C _build dist
-    - meson test -C _build
-    - ninja -C  _build/ iio-sensor-proxy-doc
+    - meson compile --verbose -C _build
+    - meson install -C _build
+    - meson dist -C _build
+    - meson test --verbose -C _build
   artifacts:
     when: always
     paths:
