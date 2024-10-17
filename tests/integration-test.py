@@ -466,6 +466,9 @@ class Tests(dbusmock.DBusTestCase):
         self.start_daemon(wrapper=script)
 
         self.assertEqual(self.get_dbus_property('HasAccelerometer'), True)
+        self.assertEqual(self.get_dbus_property('AccelerometerOrientation'), 'undefined')
+
+        self.proxy.ClaimAccelerometer()
         self.assertEqual(self.get_dbus_property('AccelerometerOrientation'), 'normal')
 
         self.stop_daemon()
