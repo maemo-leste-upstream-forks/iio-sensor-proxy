@@ -279,13 +279,13 @@ class Tests(dbusmock.DBusTestCase):
         self.assertEqual(self.get_dbus_property('LightLevel'), 0)
 
         self.proxy.ClaimLight()
-        self.assertEventually(lambda: int(self.get_dbus_property('LightLevel')) == 50)
+        self.assertEqual(int(self.get_dbus_property('LightLevel')), 50)
         self.assertEqual(self.get_dbus_property('LightLevelUnit'), 'vendor')
 
         self.testbed.set_attribute(hwmon, 'light', '(255,255)')
         # DEFAULT_POLL_TIME
         time.sleep(0.5)
-        self.assertEventually(lambda: self.get_dbus_property('LightLevel') == 100)
+        self.assertEqual(self.get_dbus_property('LightLevel'), 100)
 
         # process = subprocess.Popen(['gdbus', 'introspect', '--system', '--dest', 'net.hadess.SensorProxy', '--object-path', '/net/hadess/SensorProxy'])
         # print (self.get_dbus_property('Foo'))
@@ -309,10 +309,10 @@ class Tests(dbusmock.DBusTestCase):
         self.assertEqual(self.get_dbus_property('LightLevel'), 0)
 
         self.proxy.ClaimLight()
-        self.assertEventually(lambda: int(self.get_dbus_property('LightLevel')) == 1.0)
+        self.assertEqual(self.get_dbus_property('LightLevel'), 0.0)
         self.assertEqual(self.get_dbus_property('LightLevelUnit'), 'lux')
 
-        self.assertEventually(lambda: int(self.get_dbus_property('LightLevel')) == 2.0)
+        self.assertEventually(lambda: int(self.get_dbus_property('LightLevel')) == 1.0)
         self.assertEqual(self.get_dbus_property('LightLevelUnit'), 'lux')
 
         # process = subprocess.Popen(['gdbus', 'introspect', '--system', '--dest', 'net.hadess.SensorProxy', '--object-path', '/net/hadess/SensorProxy'])
@@ -338,7 +338,7 @@ class Tests(dbusmock.DBusTestCase):
             SP_COMPASS_PATH, SP_COMPASS, None)
         compass_proxy.ClaimCompass()
 
-        self.assertEventually(lambda: int(self.get_compass_dbus_property('CompassHeading')) == 10)
+        self.assertEqual(int(self.get_compass_dbus_property('CompassHeading')), 10)
         self.assertEventually(lambda: int(self.get_compass_dbus_property('CompassHeading')) == 20)
 
         self.stop_daemon()
@@ -390,7 +390,7 @@ class Tests(dbusmock.DBusTestCase):
         self.assertEqual(self.read_sysfs_attr(accel, 'sampling_frequency'), b'10')
 
         self.proxy.ClaimAccelerometer()
-        self.assertEventually(lambda: self.get_dbus_property('AccelerometerOrientation') == 'normal')
+        self.assertEqual(self.get_dbus_property('AccelerometerOrientation'), 'normal')
 
         self.testbed.set_attribute(accel, 'in_accel_x_raw', '-25.6')
         self.testbed.set_attribute(accel, 'in_accel_y_raw', '0')
@@ -416,7 +416,7 @@ class Tests(dbusmock.DBusTestCase):
         self.assertEqual(self.get_dbus_property('LightLevel'), 0)
 
         self.proxy.ClaimLight()
-        self.assertEventually(lambda: int(self.get_dbus_property('LightLevel')) == 10)
+        self.assertEqual(int(self.get_dbus_property('LightLevel')), 10)
         self.assertEqual(self.get_dbus_property('LightLevelUnit'), 'lux')
 
         self.testbed.set_attribute(iio, 'in_illuminance_input', '30')
@@ -442,7 +442,7 @@ class Tests(dbusmock.DBusTestCase):
         self.assertEqual(self.get_dbus_property('ProximityNear'), False)
 
         self.proxy.ClaimProximity()
-        self.assertEventually(lambda: self.get_dbus_property('ProximityNear') == True)
+        self.assertEqual(self.get_dbus_property('ProximityNear'), True)
 
         self.testbed.set_attribute(prox, 'in_proximity_raw', '0')
         self.assertEventually(lambda: self.get_dbus_property('ProximityNear') == False)
@@ -567,7 +567,13 @@ class Tests(dbusmock.DBusTestCase):
         ctx = GLib.main_context_default()
 
         self.proxy.ClaimLight()
-        self.assertEventually(lambda: int(self.get_dbus_property('LightLevel')) == 1.0)
+        self.assertEqual(self.get_dbus_property('LightLevel'), 0.0)
+        self.proxy.ReleaseLight()
+
+        self.assertEqual(self.get_dbus_property('LightLevel'), 0.0)
+
+        self.proxy.ClaimLight()
+        self.assertEqual(self.get_dbus_property('LightLevel'), 1.0)
         self.proxy.ReleaseLight()
 
         self.assertEqual(self.get_dbus_property('LightLevel'), 1.0)
@@ -627,7 +633,7 @@ class Tests(dbusmock.DBusTestCase):
         with open(mock_dev_data,'wb') as mock_file:
             mock_file.write(data)
         self.proxy.ClaimAccelerometer()
-        self.assertEventually(lambda: self.have_text_in_log('Accel sent by driver'))
+        self.assertEqual(self.have_text_in_log('Accel sent by driver'), True)
         self.assertEqual(self.have_text_in_log('scale: 0,000000,0,000000,0,000000'), False)
         if self.has_fr:
             self.assertEqual(self.have_text_in_log('scale: 0,000010,0,000010,0,000010'), True)
@@ -729,12 +735,12 @@ class Tests(dbusmock.DBusTestCase):
         self.start_daemon(env=env)
 
         self.proxy.ClaimAccelerometer()
-        self.assertEventually(lambda: self.have_text_in_log('Accel read from IIO on'))
+        self.assertEqual(self.have_text_in_log('Accel read from IIO on'), True)
         self.assertEqual(self.have_text_in_log('scale 1,000000,1,000000,1,000000'), False)
         if self.has_fr:
             self.assertEqual(self.have_text_in_log('scale 0,000001,0,000001,0,000001'), True)
 
-        self.assertEventually(lambda: self.get_dbus_property('AccelerometerOrientation') == 'normal')
+        self.assertEqual(self.get_dbus_property('AccelerometerOrientation'), 'normal')
 
         self.testbed.set_attribute(accel, 'in_accel_x_raw', '-256000000')
         self.testbed.set_attribute(accel, 'in_accel_y_raw', '0')
