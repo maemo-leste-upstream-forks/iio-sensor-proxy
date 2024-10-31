@@ -24,13 +24,31 @@ typedef enum {
         ORIENTATION_RIGHT_UP
 } OrientationUp;
 
+typedef enum {
+        TILT_UNDEFINED,
+        TILT_VERTICAL,
+        TILT_UP,
+        TILT_DOWN,
+        FACE_UP,
+        FACE_DOWN
+} Tilt;
+
 #define ORIENTATION_UP_UP ORIENTATION_NORMAL
 
 const char    *orientation_to_string (OrientationUp o);
 OrientationUp  string_to_orientation (const char *orientation);
+
+const char    *tilt_to_string (Tilt t);
+Tilt           string_to_tilt (const char *tilt);
 
 OrientationUp  orientation_calc      (OrientationUp prev,
 				      int           x,
 				      int           y,
 				      int           z,
 				      AccelScale    scale);
+
+Tilt  tilt_calc (Tilt   prev,
+	         int        in_x,
+	         int        in_y,
+	         int        in_z,
+	         AccelScale scale);

@@ -43,6 +43,11 @@ properties_changed (GDBusProxy *proxy,
 		g_print ("    Accelerometer orientation changed: %s\n", g_variant_get_string (v, NULL));
 		g_variant_unref (v);
 	}
+	if (g_variant_dict_contains (&dict, "AccelerometerTilt")) {
+		v = g_dbus_proxy_get_cached_property (iio_proxy, "AccelerometerTilt");
+		g_print ("    Tilt changed: %s\n", g_variant_get_string (v, NULL));
+		g_variant_unref (v);
+	}
 	if (g_variant_dict_contains (&dict, "HasAmbientLight")) {
 		v = g_dbus_proxy_get_cached_property (iio_proxy, "HasAmbientLight");
 		if (g_variant_get_boolean (v))
@@ -99,9 +104,13 @@ print_initial_values (void)
 		v = g_dbus_proxy_get_cached_property (iio_proxy, "HasAccelerometer");
 		if (g_variant_get_boolean (v)) {
 			g_variant_unref (v);
+			GVariant *y;
 			v = g_dbus_proxy_get_cached_property (iio_proxy, "AccelerometerOrientation");
-			g_print ("=== Has accelerometer (orientation: %s)\n",
-				 g_variant_get_string (v, NULL));
+			y = g_dbus_proxy_get_cached_property (iio_proxy, "AccelerometerTilt");
+			g_print ("=== Has accelerometer (orientation: %s, tilt: %s)\n",
+				 g_variant_get_string (v, NULL), g_variant_get_string (y, NULL));
+			g_variant_unref (v);
+			g_clear_pointer (&y, g_variant_unref);
 		} else {
 			g_print ("=== No accelerometer\n");
 		}

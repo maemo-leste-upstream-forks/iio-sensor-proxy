@@ -58,6 +58,46 @@
     <property name="AccelerometerOrientation" type="s" access="read"/>
 
     <!--
+        AccelerometerTilt:
+
+        The detected tilt of the device.
+        Possible values are:
+        <itemizedlist>
+          <listitem>
+            <para>
+              undefined
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              vertical
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              tilted-up
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              tilted-down
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              face-up
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              face-down
+            </para>
+          </listitem>
+        </itemizedlist>
+    -->
+    <property name='AccelerometerTilt' type='s' access='read'/>
+
+    <!--
         HasAmbientLight:
 
         Whether a supported ambient light sensor is present on the system.

@@ -30,10 +30,26 @@ static const char *orientations[] = {
         NULL
 };
 
+static const char *tilts[] = {
+        "undefined",
+        "vertical",
+        "tilted-up",
+        "tilted-down",
+        "face-up",
+        "face-down",
+        NULL
+};
+
 const char *
 orientation_to_string (OrientationUp o)
 {
         return orientations[o];
+}
+
+const char *
+tilt_to_string (Tilt t)
+{
+        return tilts[t];
 }
 
 OrientationUp
@@ -50,15 +66,63 @@ string_to_orientation (const char *orientation)
         return ORIENTATION_UNDEFINED;
 }
 
+Tilt
+string_to_tilt (const char *tilt)
+{
+        int i;
+
+        if (tilt == NULL)
+                return TILT_UNDEFINED;
+        for (i = 0; tilts[i] != NULL; i++) {
+                if (g_str_equal (tilt, tilts[i]))
+                        return i;
+        }
+        return TILT_UNDEFINED;
+}
 #define RADIANS_TO_DEGREES 180.0/M_PI
 #define SAME_AXIS_LIMIT 5
 
 #define THRESHOLD_LANDSCAPE  35
 #define THRESHOLD_PORTRAIT  35
+#define THRESHOLD_FACE_DOWN  70
+#define THRESHOLD_TILT  20
+#define TILT_MAX  90
 
 /* First apply scale to get m/s², then
  * convert to 1G ~= 256 as the code expects */
 #define SCALE(a) ((int) ((double) in_##a * scale.a * 256.0 / 9.81))
+
+
+Tilt
+tilt_calc (Tilt prev,
+           int in_x, int in_y, int in_z,
+           AccelScale scale)
+{
+        Tilt ret = prev;
+        int x, y, z;
+        int tilt;
+
+        /* this code expects 1G ~= 256 */
+        x = SCALE(x);
+        y = SCALE(y);
+        z = SCALE(z);
+
+        tilt = round(atan2(z, sqrt(x * x + y * y)) * RADIANS_TO_DEGREES);
+
+        /* Tilt check */
+        if (abs(tilt) <= THRESHOLD_TILT)
+            ret = TILT_VERTICAL;
+        else if (abs(tilt) > THRESHOLD_TILT &&
+                   abs(tilt) < THRESHOLD_FACE_DOWN)
+            ret = tilt > 0 ? TILT_UP : TILT_DOWN;
+        else if (abs(tilt) >= THRESHOLD_FACE_DOWN &&
+                   abs(tilt) <= TILT_MAX)
+            ret = tilt > 0 ? FACE_UP : FACE_DOWN;
+        else
+            ret = TILT_UNDEFINED;
+
+        return ret;
+}
 
 OrientationUp
 orientation_calc (OrientationUp prev,

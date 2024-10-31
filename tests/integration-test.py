@@ -387,14 +387,22 @@ class Tests(dbusmock.DBusTestCase):
 
         # Default values
         self.assertEqual(self.get_dbus_property('AccelerometerOrientation'), 'undefined')
+        self.assertEqual(self.get_dbus_property('AccelerometerTilt'), 'undefined')
         self.assertEqual(self.read_sysfs_attr(accel, 'sampling_frequency'), b'10')
 
         self.proxy.ClaimAccelerometer()
         self.assertEqual(self.get_dbus_property('AccelerometerOrientation'), 'normal')
+        self.assertEqual(self.get_dbus_property('AccelerometerTilt'), 'vertical')
 
         self.testbed.set_attribute(accel, 'in_accel_x_raw', '-25.6')
         self.testbed.set_attribute(accel, 'in_accel_y_raw', '0')
         self.assertEventually(lambda: self.get_dbus_property('AccelerometerOrientation') == 'right-up')
+
+        self.testbed.set_attribute(accel, 'in_accel_z_raw', '-25.6')
+        self.assertEventually(lambda: self.get_dbus_property('AccelerometerTilt') == 'tilted-down')
+
+        self.testbed.set_attribute(accel, 'in_accel_z_raw', '72.4')
+        self.assertEventually(lambda: self.get_dbus_property('AccelerometerTilt') == 'face-up')
 
         self.stop_daemon()
 

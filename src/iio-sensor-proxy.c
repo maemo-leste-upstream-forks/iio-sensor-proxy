@@ -54,6 +54,7 @@ typedef struct {
 
 	/* Accelerometer */
 	OrientationUp previous_orientation;
+	Tilt          previous_tilt;
 
 	/* Light */
 	gdouble previous_level;
@@ -185,6 +186,7 @@ typedef enum {
 	PROP_COMPASS_HEADING            = 1 << 5,
 	PROP_HAS_PROXIMITY              = 1 << 6,
 	PROP_PROXIMITY_NEAR             = 1 << 7,
+	PROP_ACCELEROMETER_TILT         = 1 << 8,
 } PropertiesMask;
 
 #define PROP_ALL (PROP_HAS_ACCELEROMETER | \
@@ -192,7 +194,8 @@ typedef enum {
                   PROP_HAS_AMBIENT_LIGHT | \
                   PROP_LIGHT_LEVEL | \
                   PROP_HAS_PROXIMITY | \
-		  PROP_PROXIMITY_NEAR)
+		  PROP_PROXIMITY_NEAR | \
+                  PROP_ACCELEROMETER_TILT)
 #define PROP_ALL_COMPASS (PROP_HAS_COMPASS | \
 			  PROP_COMPASS_HEADING)
 
@@ -202,7 +205,8 @@ mask_for_sensor_type (DriverType sensor_type)
 	switch (sensor_type) {
 	case DRIVER_TYPE_ACCEL:
 		return PROP_HAS_ACCELEROMETER |
-			PROP_ACCELEROMETER_ORIENTATION;
+			PROP_ACCELEROMETER_ORIENTATION |
+			PROP_ACCELEROMETER_TILT;
 	case DRIVER_TYPE_LIGHT:
 		return PROP_HAS_AMBIENT_LIGHT |
 			PROP_LIGHT_LEVEL;
@@ -237,15 +241,23 @@ send_dbus_event_for_client (SensorData     *data,
 				       g_variant_new_boolean (has_accel));
 
 		/* Send the orientation when the device appears */
-		if (has_accel)
+		if (has_accel) {
 			mask |= PROP_ACCELEROMETER_ORIENTATION;
-		else
+			mask |= PROP_ACCELEROMETER_TILT;
+                } else {
 			data->previous_orientation = ORIENTATION_UNDEFINED;
+			data->previous_tilt = TILT_UNDEFINED;
+		}
 	}
 
 	if (mask & PROP_ACCELEROMETER_ORIENTATION) {
 		g_variant_builder_add (&props_builder, "{sv}", "AccelerometerOrientation",
 				       g_variant_new_string (orientation_to_string (data->previous_orientation)));
+	}
+
+	if (mask & PROP_ACCELEROMETER_TILT) {
+		g_variant_builder_add (&props_builder, "{sv}", "AccelerometerTilt",
+				       g_variant_new_string (tilt_to_string (data->previous_tilt)));
 	}
 
 	if (mask & PROP_HAS_AMBIENT_LIGHT) {
@@ -590,6 +602,8 @@ handle_get_property (GDBusConnection *connection,
 		return g_variant_new_boolean (driver_type_exists (data, DRIVER_TYPE_ACCEL));
 	if (g_strcmp0 (property_name, "AccelerometerOrientation") == 0)
 		return g_variant_new_string (orientation_to_string (data->previous_orientation));
+	if (g_strcmp0 (property_name, "AccelerometerTilt") == 0)
+		return g_variant_new_string (tilt_to_string (data->previous_tilt));
 	if (g_strcmp0 (property_name, "HasAmbientLight") == 0)
 		return g_variant_new_boolean (driver_type_exists (data, DRIVER_TYPE_LIGHT));
 	if (g_strcmp0 (property_name, "LightLevelUnit") == 0)
@@ -808,6 +822,7 @@ accel_changed_func (SensorDevice *sensor_device,
 	SensorData *data = user_data;
 	AccelReadings *readings = (AccelReadings *) readings_data;
 	OrientationUp orientation;
+	Tilt tilt;
 
 	//FIXME handle errors
 	g_debug ("Accel sent by driver (quirk applied): %d, %d, %d (scale: %lf,%lf,%lf)",
@@ -827,6 +842,21 @@ accel_changed_func (SensorDevice *sensor_device,
 		g_debug ("Emitted orientation changed: from %s to %s",
 			 orientation_to_string (tmp),
 			 orientation_to_string (data->previous_orientation));
+	}
+
+	tilt = tilt_calc (data->previous_tilt,
+			  readings->accel_x, readings->accel_y, readings->accel_z,
+			  readings->scale);
+
+	if (data->previous_tilt != tilt) {
+		Tilt tmp;
+
+		tmp = data->previous_tilt;
+		data->previous_tilt = tilt;
+		send_dbus_event (data, PROP_ACCELEROMETER_TILT);
+		g_debug ("Emitted tilt changed: from %s to %s",
+			 tilt_to_string (tmp),
+			 tilt_to_string (data->previous_tilt));
 	}
 
 	maybe_notify_sensor_startup_finished (data, DRIVER_TYPE_ACCEL);
@@ -1107,6 +1137,7 @@ int main (int argc, char **argv)
 
 	data = g_new0 (SensorData, 1);
 	data->previous_orientation = ORIENTATION_UNDEFINED;
+	data->previous_tilt = TILT_UNDEFINED;
 	data->uses_lux = TRUE;
 
 	/* Set up D-Bus */
