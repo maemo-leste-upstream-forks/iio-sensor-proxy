@@ -761,7 +761,8 @@ disable_ring_buffer (BufferDrvData *data)
 	write_sysfs_int ("buffer/enable", data->dev_dir_name, 0);
 
 	/* Disconnect the trigger - just write a dummy name. */
-	write_sysfs_string ("trigger/current_trigger", data->dev_dir_name, "NULL");
+	if (data->trigger_name)
+		write_sysfs_string ("trigger/current_trigger", data->dev_dir_name, "NULL");
 }
 
 static gboolean
@@ -823,12 +824,13 @@ buffer_drv_data_new (GUdevDevice *device,
 
 	buffer_data = g_new0 (BufferDrvData, 1);
 	buffer_data->dev_dir_name = g_udev_device_get_sysfs_path (device);
-	buffer_data->trigger_name = g_strdup (trigger_name);
+	if (trigger_name)
+		buffer_data->trigger_name = g_strdup (trigger_name);
 	buffer_data->device = g_object_ref (device);
 
 	if (!iio_fixup_sampling_frequency (device) ||
 	    !enable_sensors (device, 1) ||
-	    !enable_trigger (buffer_data) ||
+	    (buffer_data->trigger_name && !enable_trigger (buffer_data)) ||
 	    !enable_ring_buffer (buffer_data) ||
 	    !build_channels (buffer_data)) {
 		buffer_drv_data_free (buffer_data);
