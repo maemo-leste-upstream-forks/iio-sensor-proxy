@@ -315,19 +315,12 @@ int main (int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (opt_watch_compass &&
-	    g_strcmp0 (g_get_user_name (), "geoclue") != 0) {
-		g_print ("Can't monitor compass as a user other than \"geoclue\"\n");
-		return EXIT_FAILURE;
-	}
-
 	if ((!opt_watch_accel &&
 	     !opt_watch_prox &&
 	     !opt_watch_compass &&
 	     !opt_watch_light) ||
 	    opt_all) {
-		opt_watch_accel = opt_watch_prox = opt_watch_light = TRUE;
-		opt_watch_compass = g_strcmp0 (g_get_user_name (), "geoclue") == 0;
+		opt_watch_accel = opt_watch_prox = opt_watch_light = opt_watch_compass = TRUE;
 	}
 
 	watch_accel = opt_watch_accel;
