@@ -264,7 +264,7 @@ appeared_cb (GDBusConnection *connection,
 					     NULL, &error);
 		if (!ret) {
 			if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
-				g_warning ("Failed to claim light sensor: %s", error->message);
+				g_warning ("Failed to claim compass: %s", error->message);
 			g_main_loop_quit (loop);
 			return;
 		}
