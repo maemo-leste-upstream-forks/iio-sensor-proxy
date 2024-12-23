@@ -6,6 +6,8 @@ IIO sensors to D-Bus proxy
 See https://hadess.pages.freedesktop.org/iio-sensor-proxy/ for
 developer information.
 
+Matrix room: https://matrix.to/#/#iio-sensor-proxy:dylanvanassche.be
+
 Installation
 ------------
 ```sh
