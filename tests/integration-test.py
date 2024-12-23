@@ -593,6 +593,36 @@ class Tests(dbusmock.DBusTestCase):
 
         self.stop_daemon()
 
+    def test_driver_buffer_without_trigger(self):
+        '''buffer driver picking without trigger'''
+        accel = self.testbed.add_device('iio', 'iio-buffer-accel0', None,
+            ['name', 'IIO Test Accelerometer',
+             'buffer/enable', '0',
+             'scan_elements/in_accel_x_en', '0',
+             'scan_elements/in_accel_x_index', '0',
+             'scan_elements/in_accel_x_type', 'le:s16/32>>0',
+             'scan_elements/in_accel_y_en', '0',
+             'scan_elements/in_accel_y_index', '1',
+             'scan_elements/in_accel_y_type', 'le:s16/32>>0',
+             'scan_elements/in_accel_z_en', '0',
+             'scan_elements/in_accel_z_index', '2',
+             'scan_elements/in_accel_z_type', 'le:s16/32>>0',
+             'scan_elements/in_timestamp_en', '1',
+             'scan_elements/in_timestamp_index', '3',
+             'scan_elements/in_timestamp_type', 'le:s64/64>>0'],
+            ['NAME', '"IIO Accelerometer"',
+             'DEVNAME', '/dev/iio-buffer-accel-test-no-trigger',
+             'IIO_SENSOR_PROXY_TYPE', 'iio-buffer-accel']
+        )
+
+        self.start_daemon()
+
+        self.assertEqual(self.get_dbus_property('HasAmbientLight'), False)
+        self.assertEqual(self.get_dbus_property('HasAccelerometer'), True)
+        self.assertEqual(self.have_text_in_log('iio-buffer-accel'), True)
+
+        self.stop_daemon()
+
     def test_unrequested_readings(self):
         '''unrequested property updates'''
         self.testbed.add_device('input', 'fake-light', None,
