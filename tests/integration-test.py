@@ -464,6 +464,38 @@ class Tests(dbusmock.DBusTestCase):
 
         self.stop_daemon()
 
+    def test_iio_poll_proximity0(self):
+        '''iio poll proximity0'''
+        prox = self.testbed.add_device('iio', 'iio-proximity', None,
+            ['in_proximity_nearlevel', '128',
+             'in_proximity0_raw', '256',
+             'name', 'IIO Test Proximity Sensor'],
+            ['NAME', '"IIO Proximity Sensor"',
+             'IIO_SENSOR_PROXY_TYPE', 'iio-poll-proximity']
+        )
+        self.start_daemon()
+        self.assertEqual(self.get_dbus_property('HasAmbientLight'), False)
+        self.assertEqual(self.get_dbus_property('HasAccelerometer'), False)
+        self.assertEqual(self.get_dbus_property('HasProximity'), True)
+
+        # Default values
+        self.assertEqual(self.get_dbus_property('ProximityNear'), False)
+
+        self.proxy.ClaimProximity()
+        self.assertEqual(self.get_dbus_property('ProximityNear'), True)
+
+        self.testbed.set_attribute(prox, 'in_proximity0_raw', '0')
+        self.assertEventually(lambda: self.get_dbus_property('ProximityNear') == False)
+
+        self.testbed.set_attribute(prox, 'in_proximity0_raw', '129')
+        self.assertEventually(lambda: self.get_dbus_property('ProximityNear') == True)
+
+        # Test margin
+        self.testbed.set_attribute(prox, 'in_proximity0_raw', '127')
+        self.assertEventually(lambda: self.get_dbus_property('ProximityNear') == True)
+
+        self.stop_daemon()
+
     def test_input_accel(self):
         '''input accelerometer'''
         top_srcdir = os.getenv('top_srcdir', '.')
