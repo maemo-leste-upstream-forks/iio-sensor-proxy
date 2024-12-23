@@ -1,3 +1,24 @@
+3.6-RC1
+-------
+
+Release Candidate for v3.6.
+
+- Deployes DBus API documentation to Gitlab Pages.
+- Switch CI from Fedora to Debian.
+- Add support for 'illuminance_clear' light sensors.
+- Add gracefull shutdown to release IIO kernel drivers.
+- Fix IIO sensor disabling on exit.
+- Add support for switch-type proximity sensors.
+- Fix tests when fr_FR locale is unavailable.
+- Poll immediately when a sensor is enabled.
+- Delay DBus notifying and method until first measurement is received.
+- Add property to DBus Orientation for device face-up and face-down.
+- Make compass available for any user instead of only geoclue.
+- Add support for proximity0 sensors.
+- Remove trigger requirement on iio-buffer-accel.
+- Add Matrix room to README.
+- Add release instructions.
+
 3.5
 ---
 
