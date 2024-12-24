@@ -109,7 +109,6 @@ print_initial_values (void)
 			y = g_dbus_proxy_get_cached_property (iio_proxy, "AccelerometerTilt");
 			g_print ("=== Has accelerometer (orientation: %s, tilt: %s)\n",
 				 g_variant_get_string (v, NULL), g_variant_get_string (y, NULL));
-			g_variant_unref (v);
 			g_clear_pointer (&y, g_variant_unref);
 		} else {
 			g_print ("=== No accelerometer\n");
