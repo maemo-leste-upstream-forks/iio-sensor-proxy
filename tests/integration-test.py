@@ -818,6 +818,33 @@ class Tests(dbusmock.DBusTestCase):
 
         self.stop_daemon()
 
+    def test_iio_accel_driver_prefer_poll_over_buffer(self):
+        '''Ensure polling driver has precedence over buffer driver for accelerometer tagged with both types'''
+        accel = self.testbed.add_device('iio', 'iio-accel', None,
+            ['in_accel_x_raw', '0',
+             'in_accel_y_raw', '0',
+             'in_accel_z_raw', '0',
+             'name', 'accel-gyro',
+             'trigger/current_trigger', '',
+             'scan_elements/in_accel_x_en', '0',
+             'scan_elements/in_accel_x_index', '0',
+             'scan_elements/in_accel_x_type', 'le:s16/32>>0',
+             'scan_elements/in_accel_y_en', '0',
+             'scan_elements/in_accel_y_index', '1',
+             'scan_elements/in_accel_y_type', 'le:s16/32>>0',
+             'scan_elements/in_accel_z_en', '0',
+             'scan_elements/in_accel_z_index', '2',
+             'scan_elements/in_accel_z_type', 'le:s16/32>>0',
+             'scan_elements/in_timestamp_en', '1',
+             'scan_elements/in_timestamp_index', '3'],
+            ['IIO_SENSOR_PROXY_TYPE', 'iio-buffer-accel iio-poll-accel']
+        )
+        self.start_daemon()
+        self.assertEqual(self.have_text_in_log("type accelerometer at IIO Poll accelerometer"), True)
+        self.assertEqual(self.get_dbus_property('HasAccelerometer'), True)
+
+        self.stop_daemon()
+
     #
     # Helper methods
     #
