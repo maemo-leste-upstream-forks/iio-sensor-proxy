@@ -62,11 +62,21 @@ You can now check whether a sensor is detected by running:
 gdbus introspect --system --dest net.hadess.SensorProxy --object-path /net/hadess/SensorProxy
 ```
 
-After that, use `monitor-sensor` to see changes in the ambient light sensor
-or the accelerometer. Note that compass changes are only available to GeoClue
-but if you need to ensure that GeoClue is getting correct data you can run:
+After that, use `monitor-sensor` to see changes in the ambient light,
+accelerometer, compass or proximity sensors.
 ```sh
-su -s /bin/sh geoclue -c monitor-sensor`
+Usage:
+  monitor-sensor [OPTION…]
+
+Help Options:
+  -h, --help       Show help options
+
+Application Options:
+  -a, --all        Monitor all the sensor changes
+  --accel          Monitor accelerometer changes
+  --proximity      Monitor proximity sensor changes
+  --compass        Monitor compass changes
+  --light          Monitor light changes changes
 ```
 
 If that doesn't work, please file an issue, make sure iio-sensor-proxy is new
