@@ -62,56 +62,52 @@ static SensorDevice *
 ssc_proximity_open (GUdevDevice *device)
 {
 	SensorDevice *sensor_device;
-	DrvData *drv_data;
-	g_autoptr (GError) error = NULL;
 
 	sensor_device = g_new0 (SensorDevice, 1);
 	sensor_device->priv = g_new0 (DrvData, 1);
-	drv_data = (DrvData *) sensor_device->priv;
-
-	/* Create sensor */
-	drv_data->sensor = ssc_sensor_proximity_new_sync (NULL, &error);
-	if (!drv_data->sensor) {
-		g_warning ("Creating SSC proximity sensor failed: %s", error->message);
-		g_clear_pointer (&sensor_device->priv, g_free);
-		g_free (sensor_device);
-		return NULL;
-	}
-	g_object_get (drv_data->sensor,
-                      SSC_SENSOR_NAME, &sensor_device->name,
-		      NULL);
-
-	/* Start listening for measurements */
-	drv_data->measurement_id = g_signal_connect (drv_data->sensor,
-			                             "measurement",
-						     G_CALLBACK (measurement_cb),
-						     sensor_device);
-
-	/* Enable sensor */
-	if (!ssc_sensor_proximity_open_sync (drv_data->sensor, NULL, &error)) {
-		g_warning ("Opening SSC proximity sensor failed: %s", error->message);
-		g_clear_object (&drv_data->sensor);
-		g_clear_pointer (&sensor_device->priv, g_free);
-		g_free (sensor_device);
-		return NULL;
-	}
 
 	return sensor_device;
 }
 
 static void
+ssc_proximity_set_polling (SensorDevice *sensor_device, gboolean state)
+{
+	DrvData *drv_data = (DrvData *) sensor_device->priv;
+	g_autoptr (GError) error = NULL;
+	if (state) {
+		/* Create sensor */
+		drv_data->sensor = ssc_sensor_proximity_new_sync (NULL, &error);
+		if (!drv_data->sensor) {
+			g_warning ("Creating SSC proximity sensor failed: %s", error ? error->message : "UNKNOWN");
+			return;
+		}
+
+		/* Start listening for measurements */
+		drv_data->measurement_id = g_signal_connect (drv_data->sensor,
+					                     "measurement",
+							     G_CALLBACK (measurement_cb),
+							     sensor_device);
+
+		/* Enable sensor */
+		if (!ssc_sensor_proximity_open_sync (drv_data->sensor, NULL, &error)) {
+			g_warning ("Opening SSC proximity sensor failed: %s", error ? error->message : "UNKNOWN");
+			return;
+		}
+	} else {
+		/* Stop listening for measurements */
+		g_warn_if_fail (drv_data->measurement_id > 0);
+		g_signal_handler_disconnect (drv_data->sensor, drv_data->measurement_id);
+
+		/* Disable sensor */
+		if (!ssc_sensor_proximity_close_sync (drv_data->sensor, NULL, &error))
+			g_warning ("Closing SSC proximity sensor failed: %s", error ? error->message : "UNKNOWN");
+	}
+}
+
+static void
 ssc_proximity_close (SensorDevice *sensor_device)
 {
-	g_autoptr (GError) error = NULL;
 	DrvData *drv_data = (DrvData *) sensor_device->priv;
-
-	/* Stop listening for measurements */
-	g_warn_if_fail (drv_data->measurement_id > 0);
-	g_signal_handler_disconnect (drv_data->sensor, drv_data->measurement_id);
-
-	/* Disable sensor */
-	if (!ssc_sensor_proximity_close_sync (drv_data->sensor, NULL, &error))
-		g_warning ("Closing SSC proximity sensor failed: %s", error->message);
 
 	g_clear_object (&drv_data->sensor);
 	g_clear_pointer (&sensor_device->priv, g_free);
@@ -124,5 +120,6 @@ SensorDriver ssc_proximity = {
 
 	.discover = ssc_proximity_discover,
 	.open = ssc_proximity_open,
+	.set_polling = ssc_proximity_set_polling,
 	.close = ssc_proximity_close,
 };
