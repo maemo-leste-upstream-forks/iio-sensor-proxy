@@ -56,6 +56,7 @@ class Tests(dbusmock.DBusTestCase):
     def setUpClass(cls):
         # run from local build tree if we are in one, otherwise use system instance
         builddir = os.getenv('top_builddir', '.')
+        print(os.path.join(builddir, 'src', 'iio-sensor-proxy'))
         if os.access(os.path.join(builddir, 'src', 'iio-sensor-proxy'), os.X_OK):
             cls.daemon_path = os.path.join(builddir, 'src', 'iio-sensor-proxy')
             cls.monitor_sensor_path = os.path.join(builddir, 'src', 'monitor-sensor')

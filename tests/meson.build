@@ -16,3 +16,17 @@ foreach ut: unit_tests
          env: envs,
         )
 endforeach
+
+if get_option('ssc-support').enabled()
+    r = run_command(unittest_inspector, files('ssc-test.py'), check: true)
+    unit_tests = r.stdout().strip().split('\n')
+    foreach ut: unit_tests
+        ut_args = files('ssc-test.py')
+        ut_args += ut
+        test(ut,
+             python3,
+             args: ut_args,
+             env: envs,
+            )
+    endforeach
+endif
