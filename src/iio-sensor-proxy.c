@@ -636,6 +636,7 @@ handle_compass_method_call (GDBusConnection       *connection,
 			    gpointer               user_data)
 {
 	SensorData *data = user_data;
+	g_autoptr(GError) error = NULL;
 
 	if (g_strcmp0 (method_name, "ClaimCompass") != 0 &&
 	    g_strcmp0 (method_name, "ReleaseCompass") != 0) {
@@ -644,6 +645,11 @@ handle_compass_method_call (GDBusConnection       *connection,
 						       G_DBUS_ERROR_UNKNOWN_METHOD,
 						       "Method '%s' does not exist on object %s",
 						       method_name, object_path);
+		return;
+	}
+
+	if (!check_claim_permission (data, sender, &error)) {
+		g_dbus_method_invocation_return_gerror (invocation, error);
 		return;
 	}
 
