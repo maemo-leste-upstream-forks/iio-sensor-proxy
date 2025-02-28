@@ -561,7 +561,7 @@ class Tests(dbusmock.DBusTestCase):
 
         # Default values
         self.assertEqual(self.get_dbus_property('AccelerometerOrientation'), 'undefined')
-        self.assertEqual(self.read_sysfs_attr(accel, 'buffer/enable'), b'1')
+        self.assertEqual(self.read_sysfs_attr(accel, 'buffer/enable'), b'0')
         self.assertEqual(self.read_sysfs_attr(accel, 'scan_elements/in_accel_x_en'), b'1')
         self.assertEqual(self.read_sysfs_attr(accel, 'scan_elements/in_accel_y_en'), b'1')
         self.assertEqual(self.read_sysfs_attr(accel, 'scan_elements/in_accel_z_en'), b'1')

@@ -128,6 +128,9 @@ iio_buffer_compass_open (GUdevDevice *device)
 	if (!buffer_data)
 		return NULL;
 
+	/* Disable the sensor buffer until claimed */
+	disable_ring_buffer (buffer_data);
+
 	sensor_device = g_new0 (SensorDevice, 1);
 	sensor_device->name = g_strdup (g_udev_device_get_property (device, "NAME"));
 	if (!sensor_device->name)
@@ -153,11 +156,13 @@ iio_buffer_compass_set_polling (SensorDevice *sensor_device,
 		return;
 
 	if (drv_data->timeout_id) {
+		disable_ring_buffer (drv_data->buffer_data);
 		g_source_remove (drv_data->timeout_id);
 		drv_data->timeout_id = 0;
 	}
 
 	if (state) {
+		enable_ring_buffer (drv_data->buffer_data);
 		drv_data->timeout_id = g_timeout_add (700, read_heading, sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[iio_buffer_compass_set_polling] read_heading");
 

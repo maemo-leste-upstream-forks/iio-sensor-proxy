@@ -144,9 +144,11 @@ iio_buffer_accel_set_polling (SensorDevice *sensor_device,
 	if (drv_data->timeout_id) {
 		g_source_remove (drv_data->timeout_id);
 		drv_data->timeout_id = 0;
+		disable_ring_buffer (drv_data->buffer_data);
 	}
 
 	if (state) {
+		enable_ring_buffer (drv_data->buffer_data);
 		drv_data->timeout_id = g_timeout_add (700, read_orientation, sensor_device);
 		g_source_set_name_by_id (drv_data->timeout_id, "[iio_buffer_accel_set_polling] read_orientation");
 
@@ -168,6 +170,9 @@ iio_buffer_accel_open (GUdevDevice *device)
 	buffer_data = buffer_drv_data_new (device, trigger_name);
 	if (!buffer_data)
 		return NULL;
+
+	/* Disable the sensor buffer until claimed */
+	disable_ring_buffer (buffer_data);
 
 	sensor_device = g_new0 (SensorDevice, 1);
 	sensor_device->name = g_strdup (g_udev_device_get_property (device, "NAME"));

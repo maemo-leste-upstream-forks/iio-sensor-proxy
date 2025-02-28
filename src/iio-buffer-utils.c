@@ -733,7 +733,7 @@ enable_sensors (GUdevDevice *dev,
 	return ret;
 }
 
-static gboolean
+gboolean
 enable_ring_buffer (BufferDrvData *data)
 {
 	int ret;
@@ -754,12 +754,16 @@ enable_ring_buffer (BufferDrvData *data)
 	return TRUE;
 }
 
-static void
+void
 disable_ring_buffer (BufferDrvData *data)
 {
 	/* Stop the buffer */
 	write_sysfs_int ("buffer/enable", data->dev_dir_name, 0);
+}
 
+static void
+disable_trigger (BufferDrvData *data)
+{
 	/* Disconnect the trigger - just write a dummy name. */
 	if (data->trigger_name)
 		write_sysfs_string ("trigger/current_trigger", data->dev_dir_name, "NULL");
@@ -863,6 +867,7 @@ buffer_drv_data_free (BufferDrvData *buffer_data)
 	/* A buffer should be disabled before scan elements to avoid a
 	 * "Device or resource busy" error */
 	disable_ring_buffer (buffer_data);
+	disable_trigger (buffer_data);
 	g_free (buffer_data->trigger_name);
 
 	enable_sensors (buffer_data->device, 0);
