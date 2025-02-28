@@ -92,42 +92,6 @@ prepare_output (SensorDevice *sensor_device,
 	process_scan (*data, sensor_device);
 }
 
-static char *
-get_trigger_name (GUdevDevice *device)
-{
-	GList *devices, *l;
-	GUdevClient *client;
-	gboolean has_trigger = FALSE;
-	char *trigger_name;
-	const gchar * const subsystems[] = { "iio", NULL };
-
-	client = g_udev_client_new (subsystems);
-	devices = g_udev_client_query_by_subsystem (client, "iio");
-
-	/* Find the associated trigger */
-	trigger_name = g_strdup_printf ("magn_3d-dev%s", g_udev_device_get_number (device));
-	for (l = devices; l != NULL; l = l->next) {
-		GUdevDevice *dev = l->data;
-
-		if (g_strcmp0 (trigger_name, g_udev_device_get_sysfs_attr (dev, "name")) == 0) {
-			g_debug ("Found associated trigger at %s", g_udev_device_get_sysfs_path (dev));
-			has_trigger = TRUE;
-			break;
-		}
-	}
-
-	g_list_free_full (devices, g_object_unref);
-	g_clear_object (&client);
-
-	if (has_trigger)
-		return trigger_name;
-
-	g_warning ("Could not find trigger name associated with %s",
-		   g_udev_device_get_sysfs_path (device));
-	g_free (trigger_name);
-	return NULL;
-}
-
 static gboolean
 read_heading (gpointer user_data)
 {

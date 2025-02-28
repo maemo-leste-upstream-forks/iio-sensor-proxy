@@ -794,6 +794,64 @@ build_channels (BufferDrvData *data)
 	return TRUE;
 }
 
+char *
+get_trigger_name (GUdevDevice *device)
+{
+	GList *devices, *l;
+	GUdevClient *client;
+	gboolean has_trigger = FALSE;
+	char *trigger_name;
+	const gchar * const subsystems[] = { "iio", NULL };
+
+	client = g_udev_client_new (subsystems);
+	devices = g_udev_client_query_by_subsystem (client, "iio");
+
+	/*
+	 * Find the associated trigger using <device_name>-dev<device_number>
+	 * pattern, such as found on sensors using Intel HID Sensor Hub drivers
+	 */
+	trigger_name = g_strdup_printf ("%s-dev%s",
+					g_udev_device_get_sysfs_attr (device, "name"),
+					g_udev_device_get_number (device));
+	for (l = devices; l != NULL; l = l->next) {
+		GUdevDevice *dev = l->data;
+
+		if (g_strcmp0 (trigger_name, g_udev_device_get_sysfs_attr (dev, "name")) == 0) {
+			g_debug ("Found associated trigger (%s) at %s", trigger_name, g_udev_device_get_sysfs_path (dev));
+			has_trigger = TRUE;
+			break;
+		}
+	}
+
+	/*
+	 * If not found, search for trigger using the alternative <device_name>-trigger
+	 * naming convention
+	 */
+	if (!has_trigger) {
+		trigger_name = g_strdup_printf ("%s-trigger", g_udev_device_get_sysfs_attr (device, "name"));
+		for (l = devices; l != NULL; l = l->next) {
+			GUdevDevice *dev = l->data;
+
+			if (g_strcmp0 (trigger_name, g_udev_device_get_sysfs_attr (dev, "name")) == 0) {
+				g_debug ("Found associated trigger (%s) at %s", trigger_name, g_udev_device_get_sysfs_path (dev));
+				has_trigger = TRUE;
+				break;
+			}
+		}
+	}
+
+	g_list_free_full (devices, g_object_unref);
+	g_clear_object (&client);
+
+	if (has_trigger)
+		return trigger_name;
+
+	g_warning ("Could not find trigger name associated with %s",
+		   g_udev_device_get_sysfs_path (device));
+	g_free (trigger_name);
+	return NULL;
+}
+
 void
 buffer_drv_data_free (BufferDrvData *buffer_data)
 {
