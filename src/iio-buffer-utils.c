@@ -903,6 +903,24 @@ buffer_drv_data_new (GUdevDevice *device,
 	return buffer_data;
 }
 
+gboolean
+is_buffer_usable (GUdevDevice *device)
+{
+	g_autofree char *trigger_name = NULL;
+	BufferDrvData *buffer_data;
+
+	trigger_name = get_trigger_name (device);
+
+	/* Temporarily enable the buffer to ensure the kernel driver is buffer-capable */
+	buffer_data = buffer_drv_data_new (device, trigger_name);
+	if (!buffer_data)
+		return FALSE;
+
+	/* Destroy buffer information until actually needed (in the .open call) */
+	g_clear_pointer (&buffer_data, buffer_drv_data_free);
+	return TRUE;
+}
+
 IIOSensorData *
 iio_sensor_data_new (gsize size)
 {

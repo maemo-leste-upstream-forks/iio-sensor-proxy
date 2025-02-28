@@ -106,7 +106,14 @@ read_heading (gpointer user_data)
 static gboolean
 iio_buffer_compass_discover (GUdevDevice *device)
 {
-	return drv_check_udev_sensor_type (device, "iio-buffer-compass", "IIO buffer compass");
+	if (!drv_check_udev_sensor_type (device, "iio-buffer-compass", NULL))
+		return FALSE;
+
+	if (!is_buffer_usable (device))
+		return FALSE;
+
+	g_debug ("Found IIO buffer compass at %s", g_udev_device_get_sysfs_path (device));
+	return TRUE;
 }
 
 static SensorDevice *

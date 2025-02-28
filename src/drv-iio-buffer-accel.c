@@ -124,7 +124,10 @@ static gboolean
 iio_buffer_accel_discover (GUdevDevice *device)
 {
 	if (!drv_check_udev_sensor_type (device, "iio-buffer-accel", NULL))
-	    return FALSE;
+		return FALSE;
+
+	if (!is_buffer_usable (device))
+		return FALSE;
 
 	g_debug ("Found IIO buffer accelerometer at %s", g_udev_device_get_sysfs_path (device));
 	return TRUE;

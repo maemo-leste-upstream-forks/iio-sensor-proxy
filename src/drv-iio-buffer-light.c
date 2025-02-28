@@ -111,7 +111,14 @@ read_light (gpointer user_data)
 static gboolean
 iio_buffer_light_discover (GUdevDevice *device)
 {
-	return drv_check_udev_sensor_type (device, "iio-buffer-als", "IIO buffer ALS");
+	if (!drv_check_udev_sensor_type (device, "iio-buffer-als", NULL))
+		return FALSE;
+
+	if (!is_buffer_usable (device))
+		return FALSE;
+
+	g_debug ("Found IIO buffer ALS at %s", g_udev_device_get_sysfs_path (device));
+	return TRUE;
 }
 
 static void
