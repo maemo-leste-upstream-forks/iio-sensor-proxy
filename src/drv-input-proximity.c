@@ -150,7 +150,7 @@ watch_input_proximity (gpointer user_data)
 	SensorDevice *sensor_device = user_data;
 	DrvData *drv_data = (DrvData *) sensor_device->priv;
 	int eventfd;
-	const g_autofree gchar *device_file;
+	const gchar *device_file;
 	g_autoptr(GError) error = NULL;
 	GIOStatus status;
 	glong bitmask[NBITS(SW_MAX)];
@@ -224,6 +224,7 @@ input_proximity_set_polling (SensorDevice *sensor_device, gboolean state)
 		return;
 
 	g_clear_handle_id (&drv_data->watcher_id, g_source_remove);
+
 	if (state) {
 		/* start watching for proximity events */
 		watch_input_proximity (sensor_device);
