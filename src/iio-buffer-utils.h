@@ -43,8 +43,7 @@ gboolean iio_fixup_sampling_frequency  (GUdevDevice *dev);
 char *get_trigger_name                 (GUdevDevice *device);
 
 void           buffer_drv_data_free    (BufferDrvData *buffer_data);
-BufferDrvData *buffer_drv_data_new     (GUdevDevice *device,
-					const char  *trigger_name);
+BufferDrvData *buffer_drv_data_new     (GUdevDevice *device);
 void     disable_ring_buffer           (BufferDrvData *data);
 gboolean enable_ring_buffer            (BufferDrvData *data);
 gboolean is_buffer_usable              (GUdevDevice *device);

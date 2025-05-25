@@ -880,13 +880,14 @@ buffer_drv_data_free (BufferDrvData *buffer_data)
 }
 
 BufferDrvData *
-buffer_drv_data_new (GUdevDevice *device,
-		     const char  *trigger_name)
+buffer_drv_data_new (GUdevDevice *device)
 {
 	BufferDrvData *buffer_data;
+	g_autofree char *trigger_name = NULL;
 
 	buffer_data = g_new0 (BufferDrvData, 1);
 	buffer_data->dev_dir_name = g_udev_device_get_sysfs_path (device);
+	trigger_name = get_trigger_name (device);
 	if (trigger_name)
 		buffer_data->trigger_name = g_strdup (trigger_name);
 	buffer_data->device = g_object_ref (device);
@@ -909,10 +910,8 @@ is_buffer_usable (GUdevDevice *device)
 	g_autofree char *trigger_name = NULL;
 	BufferDrvData *buffer_data;
 
-	trigger_name = get_trigger_name (device);
-
 	/* Temporarily enable the buffer to ensure the kernel driver is buffer-capable */
-	buffer_data = buffer_drv_data_new (device, trigger_name);
+	buffer_data = buffer_drv_data_new (device);
 	if (!buffer_data)
 		return FALSE;
 

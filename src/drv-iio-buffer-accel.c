@@ -151,13 +151,9 @@ iio_buffer_accel_open (GUdevDevice *device)
 {
 	SensorDevice *sensor_device;
 	DrvData *drv_data;
-	g_autofree char *trigger_name = NULL;
 	BufferDrvData *buffer_data;
 
-	/* Get the trigger name, and build the channels from that */
-	trigger_name = get_trigger_name (device);
-
-	buffer_data = buffer_drv_data_new (device, trigger_name);
+	buffer_data = buffer_drv_data_new (device);
 	if (!buffer_data)
 		return NULL;
 

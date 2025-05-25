@@ -108,17 +108,9 @@ iio_buffer_compass_open (GUdevDevice *device)
 {
 	SensorDevice *sensor_device;
 	DrvData *drv_data;
-	g_autofree char *trigger_name = NULL;
 	BufferDrvData *buffer_data;
 
-	/* Get the trigger name, and build the channels from that */
-	trigger_name = get_trigger_name (device);
-	if (!trigger_name) {
-		g_debug ("Could not find trigger for %s", g_udev_device_get_sysfs_path (device));
-		return NULL;
-	}
-
-	buffer_data = buffer_drv_data_new (device, trigger_name);
+	buffer_data = buffer_drv_data_new (device);
 	if (!buffer_data)
 		return NULL;
 
