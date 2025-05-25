@@ -103,19 +103,6 @@ read_heading (gpointer user_data)
 	return G_SOURCE_CONTINUE;
 }
 
-static gboolean
-iio_buffer_compass_discover (GUdevDevice *device)
-{
-	if (!drv_check_udev_sensor_type (device, "iio-buffer-compass", NULL))
-		return FALSE;
-
-	if (!is_buffer_usable (device))
-		return FALSE;
-
-	g_debug ("Found IIO buffer compass at %s", g_udev_device_get_sysfs_path (device));
-	return TRUE;
-}
-
 static SensorDevice *
 iio_buffer_compass_open (GUdevDevice *device)
 {
@@ -186,6 +173,19 @@ iio_buffer_compass_close (SensorDevice *sensor_device)
 	g_clear_object (&drv_data->dev);
 	g_clear_pointer (&sensor_device->priv, g_free);
 	g_free (sensor_device);
+}
+
+static gboolean
+iio_buffer_compass_discover (GUdevDevice *device)
+{
+	if (!drv_check_udev_sensor_type (device, "iio-buffer-compass", NULL))
+		return FALSE;
+
+	if (!is_buffer_usable (device))
+		return FALSE;
+
+	g_debug ("Found IIO buffer compass at %s", g_udev_device_get_sysfs_path (device));
+	return TRUE;
 }
 
 SensorDriver iio_buffer_compass = {

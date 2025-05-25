@@ -120,19 +120,6 @@ read_orientation (gpointer user_data)
 	return G_SOURCE_CONTINUE;
 }
 
-static gboolean
-iio_buffer_accel_discover (GUdevDevice *device)
-{
-	if (!drv_check_udev_sensor_type (device, "iio-buffer-accel", NULL))
-		return FALSE;
-
-	if (!is_buffer_usable (device))
-		return FALSE;
-
-	g_debug ("Found IIO buffer accelerometer at %s", g_udev_device_get_sysfs_path (device));
-	return TRUE;
-}
-
 static void
 iio_buffer_accel_set_polling (SensorDevice *sensor_device,
 			      gboolean state)
@@ -203,6 +190,19 @@ iio_buffer_accel_close (SensorDevice *sensor_device)
 	g_clear_pointer (&drv_data->dev_path, g_free);
 	g_clear_pointer (&sensor_device->priv, g_free);
 	g_free (sensor_device);
+}
+
+static gboolean
+iio_buffer_accel_discover (GUdevDevice *device)
+{
+	if (!drv_check_udev_sensor_type (device, "iio-buffer-accel", NULL))
+		return FALSE;
+
+	if (!is_buffer_usable (device))
+		return FALSE;
+
+	g_debug ("Found IIO buffer accelerometer at %s", g_udev_device_get_sysfs_path (device));
+	return TRUE;
 }
 
 SensorDriver iio_buffer_accel = {

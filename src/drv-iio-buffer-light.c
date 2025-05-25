@@ -108,19 +108,6 @@ read_light (gpointer user_data)
 	return G_SOURCE_CONTINUE;
 }
 
-static gboolean
-iio_buffer_light_discover (GUdevDevice *device)
-{
-	if (!drv_check_udev_sensor_type (device, "iio-buffer-als", NULL))
-		return FALSE;
-
-	if (!is_buffer_usable (device))
-		return FALSE;
-
-	g_debug ("Found IIO buffer ALS at %s", g_udev_device_get_sysfs_path (device));
-	return TRUE;
-}
-
 static void
 iio_buffer_light_set_polling (SensorDevice *sensor_device,
 			      gboolean state)
@@ -190,6 +177,19 @@ iio_buffer_light_close (SensorDevice *sensor_device)
 	g_clear_object (&drv_data->dev);
 	g_clear_pointer (&sensor_device->priv, g_free);
 	g_free (sensor_device);
+}
+
+static gboolean
+iio_buffer_light_discover (GUdevDevice *device)
+{
+	if (!drv_check_udev_sensor_type (device, "iio-buffer-als", NULL))
+		return FALSE;
+
+	if (!is_buffer_usable (device))
+		return FALSE;
+
+	g_debug ("Found IIO buffer ALS at %s", g_udev_device_get_sysfs_path (device));
+	return TRUE;
 }
 
 SensorDriver iio_buffer_light = {
