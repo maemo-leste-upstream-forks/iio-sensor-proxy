@@ -555,6 +555,9 @@ class Tests(dbusmock.DBusTestCase):
             ['name', 'accel_3d-dev0'],
             []
         )
+        data = self.read_file(top_srcdir + '/tests/iio-buffer-accel-data/orientation-normal.bin')
+        with open(mock_dev_data,'wb') as mock_file:
+            mock_file.write(data)
         self.start_daemon()
         self.assertEqual(self.get_dbus_property('HasAmbientLight'), False)
         self.assertEqual(self.get_dbus_property('HasAccelerometer'), True)
@@ -566,7 +569,6 @@ class Tests(dbusmock.DBusTestCase):
         self.assertEqual(self.read_sysfs_attr(accel, 'scan_elements/in_accel_y_en'), b'1')
         self.assertEqual(self.read_sysfs_attr(accel, 'scan_elements/in_accel_z_en'), b'1')
 
-        data = self.read_file(top_srcdir + '/tests/iio-buffer-accel-data/orientation-normal.bin')
         with open(mock_dev_data,'wb') as mock_file:
             mock_file.write(data)
         self.proxy.ClaimAccelerometer()
@@ -595,6 +597,8 @@ class Tests(dbusmock.DBusTestCase):
 
     def test_driver_buffer_without_trigger(self):
         '''buffer driver picking without trigger'''
+        top_srcdir = os.getenv('top_srcdir', '.')
+        mock_dev_data = self.testbed.get_root_dir() + '/iio-dev-data.bin'
         accel = self.testbed.add_device('iio', 'iio-buffer-accel0', None,
             ['name', 'IIO Test Accelerometer',
              'buffer/enable', '0',
@@ -615,6 +619,9 @@ class Tests(dbusmock.DBusTestCase):
              'IIO_SENSOR_PROXY_TYPE', 'iio-buffer-accel']
         )
 
+        data = self.read_file(top_srcdir + '/tests/iio-buffer-accel-data/orientation-normal.bin')
+        with open(mock_dev_data,'wb') as mock_file:
+            mock_file.write(data)
         self.start_daemon()
 
         self.assertEqual(self.get_dbus_property('HasAmbientLight'), False)
@@ -696,10 +703,12 @@ class Tests(dbusmock.DBusTestCase):
         )
         env = os.environ.copy()
         env['LC_NUMERIC'] = 'fr_FR.UTF-8'
+        data = self.read_file(top_srcdir + '/tests/iio-buffer-accel-data/orientation-normal.bin')
+        with open(mock_dev_data,'wb') as mock_file:
+            mock_file.write(data)
         self.start_daemon(env=env)
 
         self.assertEqual(self.get_dbus_property('HasAccelerometer'), True)
-        data = self.read_file(top_srcdir + '/tests/iio-buffer-accel-data/orientation-normal.bin')
         with open(mock_dev_data,'wb') as mock_file:
             mock_file.write(data)
         self.proxy.ClaimAccelerometer()
@@ -742,6 +751,9 @@ class Tests(dbusmock.DBusTestCase):
         )
         env = os.environ.copy()
         env['LC_NUMERIC'] = 'fr_FR.UTF-8'
+        data = self.read_file(top_srcdir + '/tests/iio-buffer-accel-data/orientation-normal.bin')
+        with open(mock_dev_data,'wb') as mock_file:
+            mock_file.write(data)
         self.start_daemon(env=env)
 
         self.assertEqual(self.get_dbus_property('HasAccelerometer'), True)

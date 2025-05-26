@@ -20,6 +20,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include <glib/gstdio.h>
 
 #define IIO_MIN_SAMPLING_FREQUENCY	10 /* Hz */
 
@@ -905,19 +906,28 @@ buffer_drv_data_new (GUdevDevice *device)
 }
 
 gboolean
-is_buffer_usable (GUdevDevice *device)
+is_buffer_usable (char *path)
 {
-	g_autofree char *trigger_name = NULL;
-	BufferDrvData *buffer_data;
+	gboolean buffer_usable = FALSE;
+	g_autofd int fp = -1;
+	GPollFD fds;
 
-	/* Temporarily enable the buffer to ensure the kernel driver is buffer-capable */
-	buffer_data = buffer_drv_data_new (device);
-	if (!buffer_data)
-		return FALSE;
+	/* Attempt to read from the sensor buffer */
+	fp = g_open (path, O_RDONLY | O_NONBLOCK);
+	if (fp == -1) {
+	        g_warning ("Failed to open '%s': %s", path, g_strerror (errno));
+	} else {
+	        fds.fd = fp;
+	        fds.events = G_IO_IN | G_IO_ERR;
+	        g_poll (&fds, 1, 500);
 
-	/* Destroy buffer information until actually needed (in the .open call) */
-	g_clear_pointer (&buffer_data, buffer_drv_data_free);
-	return TRUE;
+	        if (fds.revents & G_IO_IN)
+	                buffer_usable = TRUE;
+	        else
+	                g_warning ("Buffer '%s' did not have data within 0.5s", path);
+	}
+
+	return buffer_usable;
 }
 
 IIOSensorData *

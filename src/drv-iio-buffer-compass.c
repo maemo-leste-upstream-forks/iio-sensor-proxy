@@ -20,7 +20,7 @@ typedef struct {
 	guint               timeout_id;
 
 	GUdevDevice        *dev;
-	const char         *dev_path;
+	char               *dev_path;
 	int                 device_id;
 	BufferDrvData      *buffer_data;
 } DrvData;
@@ -125,7 +125,7 @@ iio_buffer_compass_open (GUdevDevice *device)
 	drv_data = (DrvData *) sensor_device->priv;
 	drv_data->dev = g_object_ref (device);
 	drv_data->buffer_data = buffer_data;
-	drv_data->dev_path = g_udev_device_get_device_file (device);
+	drv_data->dev_path = get_device_file (device);
 
 	return sensor_device;
 }
@@ -170,10 +170,28 @@ iio_buffer_compass_close (SensorDevice *sensor_device)
 static gboolean
 iio_buffer_compass_discover (GUdevDevice *device)
 {
+	SensorDevice *sensor_device;
+	DrvData *drv_data;
+	gboolean buffer_usable = FALSE;
+
 	if (!drv_check_udev_sensor_type (device, "iio-buffer-compass", NULL))
 		return FALSE;
 
-	if (!is_buffer_usable (device))
+	sensor_device = iio_buffer_compass_open (device);
+	if (!sensor_device)
+		return FALSE;
+
+	/* Attempt to read from the sensor */
+	drv_data = (DrvData *) sensor_device->priv;
+	enable_ring_buffer (drv_data->buffer_data);
+
+	buffer_usable = is_buffer_usable(drv_data->dev_path);
+
+	/* Close the sensor until it has been claimed */
+	disable_ring_buffer (drv_data->buffer_data);
+	iio_buffer_compass_close (sensor_device);
+
+	if (!buffer_usable)
 		return FALSE;
 
 	g_debug ("Found IIO buffer compass at %s", g_udev_device_get_sysfs_path (device));
