@@ -630,6 +630,42 @@ class Tests(dbusmock.DBusTestCase):
 
         self.stop_daemon()
 
+    def test_iio_broken_buffer_accel(self):
+        '''iio sensor reporting broken buffer support'''
+        top_srcdir = os.getenv('top_srcdir', '.')
+        mock_dev_data = self.testbed.get_root_dir() + '/iio-dev-data.bin'
+        accel = self.testbed.add_device('iio', 'iio-buffer-accel0', None,
+            ['name', 'IIO Test Accelerometer',
+             'buffer/enable', '0',
+             'trigger/current_trigger', '',
+             'scan_elements/in_accel_x_en', '0',
+             'scan_elements/in_accel_x_index', '0',
+             'scan_elements/in_accel_x_type', 'le:s16/32>>0',
+             'scan_elements/in_accel_y_en', '0',
+             'scan_elements/in_accel_y_index', '1',
+             'scan_elements/in_accel_y_type', 'le:s16/32>>0',
+             'scan_elements/in_accel_z_en', '0',
+             'scan_elements/in_accel_z_index', '2',
+             'scan_elements/in_accel_z_type', 'le:s16/32>>0',
+             'scan_elements/in_timestamp_en', '1',
+             'scan_elements/in_timestamp_index', '3',
+             'scan_elements/in_timestamp_type', 'le:s64/64>>0'],
+            ['NAME', '"IIO Accelerometer"',
+             'DEVNAME', '/dev/iio-buffer-accel-test',
+             'IIO_SENSOR_PROXY_TYPE', 'iio-buffer-accel iio-poll-accel']
+        )
+        trigger = self.testbed.add_device('iio', 'trigger0', None,
+            ['name', 'accel_3d-dev0'],
+            []
+        )
+        self.start_daemon()
+        self.assertEqual(self.have_text_in_log('Built channel array'), True)
+        self.assertEqual(self.have_text_in_log('Disabled sensor'), True)
+        self.assertEqual(self.have_text_in_log('Found IIO poll accelerometer'), True)
+        self.assertEqual(self.get_dbus_property('HasAccelerometer'), True)
+
+        self.stop_daemon()
+
     def test_unrequested_readings(self):
         '''unrequested property updates'''
         self.testbed.add_device('input', 'fake-light', None,
