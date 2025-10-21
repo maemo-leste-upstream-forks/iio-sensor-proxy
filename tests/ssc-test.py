@@ -289,6 +289,7 @@ class Tests(dbusmock.DBusTestCase):
 
         self.stop_daemon()
 
+    @unittest.skip('Accelerometer SSC sensor is currently disabled via udev by default.')
     def test_ssc_accel(self):
         '''SSC accelerometer'''
         prox = self.testbed.add_device('misc', 'ssc-accel', None,
