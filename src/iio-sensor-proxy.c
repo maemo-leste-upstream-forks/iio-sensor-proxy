@@ -766,7 +766,7 @@ name_acquired_handler (GDBusConnection *connection,
 
 bail:
 	data->ret = 0;
-	g_debug ("No sensors or missing kernel drivers for the sensors");
+	g_message ("No sensors or missing kernel drivers for the sensors. Exiting");
 	g_main_loop_quit (data->loop);
 }
 
