@@ -73,31 +73,39 @@ input_device_is_switch (GUdevDevice *device, glong *bitmask)
 	gboolean ret = FALSE;
 	g_autofree gchar *contents = NULL;
 	g_autofree gchar *native_path = NULL;
-	g_autofree gchar *path;
+	g_autofree gchar *path = NULL;
 	g_autoptr(GError) error = NULL;
 	gint num_bits;
 
-	/* check if the input device has switch capabilities */
+	/* only process devices on the input subsystem */
+	if (g_strcmp0 (g_udev_device_get_subsystem (device), "input") != 0)
+		return FALSE;
+
+	/* ignore devices which do not report any switch capabilities */
 	native_path = g_strdup (g_udev_device_get_sysfs_path (device));
 	path = g_build_filename (native_path, "../capabilities/sw", NULL);
 	if (!g_file_test (path, G_FILE_TEST_EXISTS)) {
-		g_warning_once ("Not a switch [%s]", path);
 		return FALSE;
 	}
 
 	ret = g_file_get_contents (path, &contents, NULL, &error);
+	/* for completeness, report read failures */
 	if (!ret) {
-		g_warning_once ("Failed to read contents of [%s]: %s",
+		g_warning ("Failed to read contents of [%s]: %s",
 			path, error->message);
 		return FALSE;
 	}
 
-	/* convert attributes of input device into a bitmask */
+	/* confirm that the device has a usable switch */
 	num_bits = input_str_to_bitmask (contents, bitmask, sizeof (bitmask));
-	if ((num_bits == 0) || (num_bits >= SW_CNT)) {
-		g_warning_once ("Invalid bitmask entry for %s", native_path);
+	if (num_bits == 0) {
+		g_debug ("%s is not a valid switch", native_path);
+        } else if (num_bits >= SW_CNT) {
+		g_debug ("%s reports an invalid number of switches. Was iio-sensor-proxy compiled with kernel headers not matching the running kernel?",
+			native_path);
 		return FALSE;
 	}
+
 	return TRUE;
 }
 
