@@ -20,7 +20,7 @@
 
 typedef struct DrvData {
 	SSCSensorProximity *sensor;
-	guint measurement_id;
+	gulong measurement_id;
 } DrvData;
 
 static gboolean
@@ -61,10 +61,16 @@ measurement_cb (SSCSensorProximity *sensor, gboolean near, gpointer user_data)
 static SensorDevice *
 ssc_proximity_open (GUdevDevice *device)
 {
+	g_autoptr(GError) error = NULL;
 	SensorDevice *sensor_device;
+	DrvData *drv_data;
 
 	sensor_device = g_new0 (SensorDevice, 1);
 	sensor_device->priv = g_new0 (DrvData, 1);
+	drv_data = (DrvData *) sensor_device->priv;
+	drv_data->sensor = ssc_sensor_proximity_new_sync (NULL, &error);
+	if (!drv_data->sensor)
+		g_warning ("Creating SSC proximity sensor failed: %s", error->message);
 
 	return sensor_device;
 }
@@ -73,15 +79,10 @@ static void
 ssc_proximity_set_polling (SensorDevice *sensor_device, gboolean state)
 {
 	DrvData *drv_data = (DrvData *) sensor_device->priv;
-	g_autoptr (GError) error = NULL;
+	g_autoptr(GError) error = NULL;
 	if (state) {
-		/* Create sensor */
-		drv_data->sensor = ssc_sensor_proximity_new_sync (NULL, &error);
-		if (!drv_data->sensor) {
-			g_warning ("Creating SSC proximity sensor failed: %s", error ? error->message : "UNKNOWN");
+		if (drv_data->measurement_id)
 			return;
-		}
-
 		/* Start listening for measurements */
 		drv_data->measurement_id = g_signal_connect (drv_data->sensor,
 					                     "measurement",
@@ -94,13 +95,13 @@ ssc_proximity_set_polling (SensorDevice *sensor_device, gboolean state)
 			return;
 		}
 	} else {
+		if (!drv_data->measurement_id)
+			return;
 		/* Stop listening for measurements */
-		g_warn_if_fail (drv_data->measurement_id > 0);
-		g_signal_handler_disconnect (drv_data->sensor, drv_data->measurement_id);
-
+		g_clear_signal_handler (&drv_data->measurement_id, drv_data->sensor);
 		/* Disable sensor */
 		if (!ssc_sensor_proximity_close_sync (drv_data->sensor, NULL, &error))
-			g_warning ("Closing SSC proximity sensor failed: %s", error ? error->message : "UNKNOWN");
+			g_warning ("Closing SSC proximity sensor failed: %s", error->message);
 	}
 }
 

@@ -20,13 +20,13 @@
 
 typedef struct DrvData {
 	SSCSensorLight *sensor;
-	guint measurement_id;
+	gulong measurement_id;
 } DrvData;
 
 static gboolean
 ssc_light_discover (GUdevDevice *device)
 {
-	SSCSensorLight *sensor;
+	g_autoptr(SSCSensorLight) sensor = NULL;
 
 	/* Verify presence of FastRPC device */
 	if (!drv_check_udev_sensor_type (device, "ssc-light", NULL))
@@ -37,12 +37,8 @@ ssc_light_discover (GUdevDevice *device)
 	if (!sensor)
 		return FALSE;
 
-	if (!ssc_sensor_light_close_sync (sensor, NULL, NULL)) {
-		g_clear_object (&sensor);
+	if (!ssc_sensor_light_close_sync (sensor, NULL, NULL))
 		return FALSE;
-	}
-
-	g_clear_object (&sensor);
 
 	g_debug ("Found SSC light at %s", g_udev_device_get_sysfs_path (device));
 	return TRUE;
@@ -62,10 +58,17 @@ measurement_cb (SSCSensorLight *sensor, gfloat intensity, gpointer user_data)
 static SensorDevice *
 ssc_light_open (GUdevDevice *device)
 {
+	g_autoptr(GError) error = NULL;
 	SensorDevice *sensor_device;
+	DrvData *drv_data;
 
 	sensor_device = g_new0 (SensorDevice, 1);
 	sensor_device->priv = g_new0 (DrvData, 1);
+
+	drv_data = (DrvData *) sensor_device->priv;
+	drv_data->sensor = ssc_sensor_light_new_sync (NULL, &error);
+	if (!drv_data->sensor)
+		g_warning ("Creating SSC light sensor failed: %s", error->message);
 
 	return sensor_device;
 }
@@ -76,39 +79,33 @@ ssc_light_set_polling (SensorDevice *sensor_device, gboolean state)
 	DrvData *drv_data = (DrvData *) sensor_device->priv;
 	g_autoptr (GError) error = NULL;
 	if (state) {
-		/* Create sensor */
-		drv_data->sensor = ssc_sensor_light_new_sync (NULL, &error);
-		if (!drv_data->sensor) {
-			g_warning ("Creating SSC light sensor failed: %s", error ? error->message : "UNKNOWN");
+		if (drv_data->measurement_id)
 			return;
-		}
-
 		/* Start listening for measurements */
 		drv_data->measurement_id = g_signal_connect (drv_data->sensor,
 					                     "measurement",
 							     G_CALLBACK (measurement_cb),
 							     sensor_device);
-
 		/* Enable sensor */
-		if (!ssc_sensor_light_open_sync (drv_data->sensor, NULL, &error)) {
-			g_warning ("Opening SSC light sensor failed: %s", error ? error->message : "UNKNOWN");
-			return;
-		}
+		if (!ssc_sensor_light_open_sync (drv_data->sensor, NULL, &error))
+			g_warning ("Opening SSC light sensor failed: %s", error->message);
 	} else {
+		if (!drv_data->measurement_id)
+			return;
+
 		/* Stop listening for measurements */
-		g_warn_if_fail (drv_data->measurement_id > 0);
-		g_signal_handler_disconnect (drv_data->sensor, drv_data->measurement_id);
+		g_clear_signal_handler (&drv_data->measurement_id, drv_data->sensor);
 
 		/* Disable sensor */
 		if (!ssc_sensor_light_close_sync (drv_data->sensor, NULL, &error))
-			g_warning ("Closing SSC light sensor failed: %s", error ? error->message : "UNKNOWN");
+			g_warning ("Closing SSC light sensor failed: %s", error->message);
 	}
 }
 
 static void
 ssc_light_close (SensorDevice *sensor_device)
 {
-	g_autoptr (GError) error = NULL;
+	g_autoptr(GError) error = NULL;
 	DrvData *drv_data = (DrvData *) sensor_device->priv;
 
 	g_clear_object (&drv_data->sensor);
