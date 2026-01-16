@@ -265,6 +265,7 @@ class Tests(dbusmock.DBusTestCase):
     # Actual test cases
     #
 
+    @unittest.skip('Proximity SSC sensor is currently disabled via udev by default.')
     def test_ssc_proximity(self):
         '''SSC proximity'''
         prox = self.testbed.add_device('misc', 'ssc-proximity', None,
