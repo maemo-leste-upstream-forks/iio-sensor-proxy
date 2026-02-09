@@ -85,6 +85,10 @@ ssc_accelerometer_open (GUdevDevice *device)
 	drv_data->sensor = ssc_sensor_accelerometer_new_sync (NULL, &error);
 	if (!drv_data->sensor)
 		g_warning ("Creating SSC accelerometer sensor failed: %s", error->message);
+	else
+		g_object_get (drv_data->sensor,
+		              SSC_SENSOR_NAME, &sensor_device->name,
+		              NULL);
 
 	/* Setup accel attributes */
 	drv_data->mount_matrix = setup_mount_matrix (device);

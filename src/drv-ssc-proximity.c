@@ -71,6 +71,10 @@ ssc_proximity_open (GUdevDevice *device)
 	drv_data->sensor = ssc_sensor_proximity_new_sync (NULL, &error);
 	if (!drv_data->sensor)
 		g_warning ("Creating SSC proximity sensor failed: %s", error->message);
+	else
+		g_object_get (drv_data->sensor,
+		              SSC_SENSOR_NAME, &sensor_device->name,
+		              NULL);
 
 	return sensor_device;
 }
