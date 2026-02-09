@@ -712,6 +712,16 @@ bus_acquired_handler (GDBusConnection *connection,
 		      gpointer         user_data)
 {
 	SensorData *data = user_data;
+	const gchar * const subsystems[] = {
+		"iio",
+		"input",
+		"platform",
+#ifdef HAS_LIBSSC
+		"misc",
+#endif
+		NULL
+    };
+	guint i;
 
 	g_dbus_connection_register_object (connection,
 					   SENSOR_PROXY_DBUS_PATH,
@@ -729,6 +739,12 @@ bus_acquired_handler (GDBusConnection *connection,
 					   NULL,
 					   NULL);
 
+	/* Initialize DBus clients hash table before DBus is fully exposed */
+	data->client = g_udev_client_new (subsystems);
+
+	for (guint i = 0; i < NUM_SENSOR_TYPES; i++)
+		data->clients[i] = create_clients_hash_table ();
+
 	data->connection = g_object_ref (connection);
 }
 
@@ -738,18 +754,8 @@ name_acquired_handler (GDBusConnection *connection,
 		       gpointer         user_data)
 {
 	SensorData *data = user_data;
-	const gchar * const subsystems[] = {
-		"iio",
-		"input",
-		"platform",
-#ifdef HAS_LIBSSC
-		"misc",
-#endif
-		NULL
-    };
 	guint i;
 
-	data->client = g_udev_client_new (subsystems);
 	if (!find_sensors (data->client, data))
 		goto bail;
 
@@ -759,7 +765,6 @@ name_acquired_handler (GDBusConnection *connection,
 	for (i = 0; i < NUM_SENSOR_TYPES; i++) {
 		SensorDevice *sensor_device;
 
-		data->clients[i] = create_clients_hash_table ();
 		data->sensor_startup_dbus_invocations_delayed[i] = g_ptr_array_new ();
 
 		if (!driver_type_exists (data, i))
