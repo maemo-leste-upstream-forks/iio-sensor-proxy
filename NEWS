@@ -1,3 +1,13 @@
+3.9
+---
+
+SSC sensors are now supported through libssc. Light and compass sensor are enabled by default,
+accelerometer and proximity remain experimental, but can be enabled through udev rules.
+
+- SSC sensor support.
+- Logging improvements for sensor discovery.
+- Fix race condition during startup.
+
 3.8
 ---
 
