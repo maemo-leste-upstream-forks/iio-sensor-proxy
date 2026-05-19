@@ -1,0 +1,4 @@
+# no documentation man pages available
+iio-sensor-proxy: no-manual-page [usr/bin/monitor-sensor]
+iio-sensor-proxy: systemd-service-file-missing-documentation-key [usr/lib/systemd/system/iio-sensor-proxy.service]
+iio-sensor-proxy: systemd-service-file-missing-install-key [usr/lib/systemd/system/iio-sensor-proxy.service]

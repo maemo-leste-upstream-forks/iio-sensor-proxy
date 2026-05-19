@@ -1,0 +1,4 @@
+Test-Command: /usr/libexec/iio-sensor-proxy --help && monitor-sensor --help
+Restrictions: superficial
+Depends:
+ @,

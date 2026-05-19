@@ -1,0 +1,26 @@
+#!/usr/bin/make -f
+#
+
+# Enable Hardening
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+ARCHES_QCOM_SSC = arm64
+
+ifneq (,$(filter $(DEB_HOST_ARCH), $(ARCHES_QCOM_SSC)))
+    WITH_SENSORS_QCOM_SSC = -Dssc-support=enabled
+else
+    WITH_SENSORS_QCOM_SSC = -Dssc-support=disabled
+endif
+
+DEB_CONFIGURE_EXTRA_ARGS := \
+  $(WITH_SENSORS_QCOM_SSC) \
+  $(NULL)
+
+# This has to be exported to make some magic below work.
+export DH_OPTIONS
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_ARGS)
