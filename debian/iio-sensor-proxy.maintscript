@@ -1,0 +1,1 @@
+rm_conffile /etc/dbus-1/system.d/net.hadess.SensorProxy.conf 3.6-2~
